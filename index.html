@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hüpf Hüpf</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1b1d2b; color: #fff; font-family: system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; margin: 0 auto; background: #87ceeb; image-rendering: pixelated; touch-action: none; }
+  #hud { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-weight: 700; text-shadow: 0 2px 0 #000; pointer-events: none; }
+  #touch { position: absolute; bottom: 12px; left: 0; right: 0; display: none; justify-content: space-between; padding: 0 16px; pointer-events: none; }
+  #touch div { display: flex; gap: 12px; }
+  #touch button { pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; border: none; background: rgba(255,255,255,.35); color: #fff; font-size: 28px; }
+  @media (pointer: coarse) { #touch { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<div id="touch">
+  <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
+  <div><button data-k="jump">⤒</button></div>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d'), hud = document.getElementById('hud');
+const W = 800, H = 450, T = 32; // Weltauflösung und Kachelgröße
+
+function resize() {
+  const s = Math.min(innerWidth / W, innerHeight / H);
+  cv.width = W; cv.height = H;
+  cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
+  cv.style.marginTop = (innerHeight - H * s) / 2 + 'px';
+}
+addEventListener('resize', resize); resize();
+
+// Level: # Boden, = Plattform, o Münze, ^ Stacheln, E Gegner, F Ziel, P Start
+const LEVELS = [[
+  "                                                                                              ",
+  "                                                                                              ",
+  "                                                                                              ",
+  "                                          ooo                                                 ",
+  "                         ooo             =====                         ooo                F   ",
+  "                        =====                          ooo            =====              ###  ",
+  "               oo                 ==                  =====                         ==   ###  ",
+  "              ====                                                 ==                     ###  ",
+  "   P                       E           E        ^^         E                  E            ###  ",
+  "##########   ##########  ######## #########  ########  ########   ######## ############## ####",
+  "##########   ##########  ######## #########  ########  ########   ######## ############## ####",
+],[
+  "                                                                                                        ",
+  "                                                                                       ooo              ",
+  "                                                    ooo                               =====             ",
+  "                                   oo              =====                                         F      ",
+  "                      ooo         ====                         ==    ==    ==               ======      ",
+  "                     =====                   ==                                    ==                   ",
+  "             ==                                                                                         ",
+  "        oo                    E                                  ooooooooo                              ",
+  "   P   ====         E       ======        E           ^^^     E                E                        ",
+  "#########   ####  ######             ##########  ##########   ############  ######                      ",
+  "#########   ####  ######             ##########  ##########   ############  ######                      ",
+]];
+
+const keys = { left: false, right: false, jump: false };
+const map = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' };
+addEventListener('keydown', e => { if (map[e.code]) { keys[map[e.code]] = true; e.preventDefault(); } if (e.code === 'Enter' && state !== 'play') start(); });
+addEventListener('keyup', e => { if (map[e.code]) keys[map[e.code]] = false; });
+document.querySelectorAll('#touch button').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { keys[k] = true; if (state !== 'play') start(); e.preventDefault(); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => keys[k] = false));
+});
+cv.addEventListener('pointerdown', () => { if (state !== 'play') start(); });
+
+let level, tiles, coins, enemies, spikes, goal, player, camX, score, lives, levelIdx, state = 'title', particles = [];
+
+function loadLevel(i) {
+  const rows = LEVELS[i];
+  const offY = H - rows.length * T;
+  tiles = []; coins = []; enemies = []; spikes = [];
+  level = { w: rows[0].length * T, offY };
+  rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    const px = x * T, py = y * T + offY;
+    if (ch === '#' || ch === '=') tiles.push({ x: px, y: py, w: T, h: ch === '=' ? T / 2 : T, plat: ch === '=' });
+    else if (ch === 'o') coins.push({ x: px + T / 2, y: py + T / 2, t: Math.random() * 6 });
+    else if (ch === '^') spikes.push({ x: px, y: py + T / 2, w: T, h: T / 2 });
+    else if (ch === 'E') enemies.push({ x: px, y: py + 8, w: 26, h: 24, vx: -1.2, vy: 0, alive: true });
+    else if (ch === 'F') goal = { x: px, y: py - T * 2, w: 8, h: T * 3 };
+    else if (ch === 'P') player = { x: px, y: py, w: 22, h: 28, vx: 0, vy: 0, ground: false, face: 1, coyote: 0, buffer: 0, inv: 0 };
+  }));
+  player.sx = player.x; player.sy = player.y;
+  camX = 0;
+}
+
+function start() {
+  if (state === 'title' || state === 'over' || state === 'win') { score = 0; lives = 3; levelIdx = 0; }
+  else if (state === 'next') levelIdx++;
+  loadLevel(levelIdx); state = 'play';
+}
+
+const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function moveAndCollide(o, solidPlatforms) {
+  o.x += o.vx;
+  for (const t of tiles) if (!t.plat && hit(o, t)) { o.x = o.vx > 0 ? t.x - o.w : t.x + t.w; o.vx = o.dir ? -o.vx : 0; }
+  const prevBottom = o.y + o.h;
+  o.y += o.vy; o.ground = false;
+  for (const t of tiles) if (hit(o, t)) {
+    if (t.plat) { if (o.vy >= 0 && prevBottom <= t.y + 1) { o.y = t.y - o.h; o.vy = 0; o.ground = true; } continue; }
+    if (o.vy > 0) { o.y = t.y - o.h; o.ground = true; } else o.y = t.y + t.h;
+    o.vy = 0;
+  }
+}
+
+function burst(x, y, color, n = 10) {
+  for (let i = 0; i < n; i++) particles.push({ x, y, vx: (Math.random() - .5) * 5, vy: -Math.random() * 5, life: 30, color });
+}
+
+function die() {
+  lives--; burst(player.x + 11, player.y + 14, '#e33', 20);
+  if (lives <= 0) { state = 'over'; return; }
+  Object.assign(player, { x: player.sx, y: player.sy, vx: 0, vy: 0, inv: 90 });
+}
+
+function update() {
+  const p = player;
+  const acc = p.ground ? 0.8 : 0.5;
+  if (keys.left) { p.vx -= acc; p.face = -1; }
+  if (keys.right) { p.vx += acc; p.face = 1; }
+  p.vx *= p.ground ? 0.8 : 0.9;
+  p.vx = Math.max(-5, Math.min(5, p.vx));
+
+  p.coyote = p.ground ? 6 : p.coyote - 1;
+  p.buffer = keys.jump && !p.jumpHeld ? 8 : p.buffer - 1;
+  p.jumpHeld = keys.jump;
+  if (p.buffer > 0 && p.coyote > 0) { p.vy = -11.5; p.buffer = 0; p.coyote = 0; burst(p.x + 11, p.y + 28, '#fff', 5); }
+  if (!keys.jump && p.vy < -4) p.vy = -4; // variable Sprunghöhe
+  p.vy = Math.min(p.vy + 0.6, 14);
+  moveAndCollide(p);
+  if (p.x < 0) p.x = 0;
+  if (p.inv > 0) p.inv--;
+  if (p.y > H + 50) die();
+
+  for (const c of coins) if (!c.got && Math.hypot(p.x + 11 - c.x, p.y + 14 - c.y) < 22) { c.got = true; score += 10; burst(c.x, c.y, '#fd0', 8); }
+  for (const s of spikes) if (p.inv <= 0 && hit(p, { x: s.x + 4, y: s.y + 4, w: s.w - 8, h: s.h })) die();
+
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    e.dir = true; e.vy = Math.min(e.vy + 0.6, 14);
+    const before = e.vx;
+    moveAndCollide(e);
+    // an Kanten umdrehen
+    const ahead = { x: e.vx > 0 ? e.x + e.w : e.x - 2, y: e.y + e.h + 2, w: 2, h: 2 };
+    if (e.ground && !tiles.some(t => hit(ahead, t))) e.vx = -e.vx;
+    if (e.y > H + 50) e.alive = false;
+    if (hit(p, e)) {
+      if (p.vy > 0 && p.y + p.h - e.y < 14) { e.alive = false; p.vy = -8; score += 50; burst(e.x + 13, e.y + 12, '#a3f', 14); }
+      else if (p.inv <= 0) die();
+    }
+  }
+
+  if (hit(p, goal)) { score += 100; state = levelIdx + 1 < LEVELS.length ? 'next' : 'win'; }
+
+  particles = particles.filter(q => (q.x += q.vx, q.y += q.vy, q.vy += 0.25, --q.life > 0));
+  camX += (Math.max(0, Math.min(level.w - W, p.x - W / 2.5)) - camX) * 0.12;
+}
+
+function draw() {
+  // Himmel & Parallax-Hügel
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#5fb8ff'); g.addColorStop(1, '#cdefff');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 8; i++) { const x = ((i * 260 - camX * 0.2) % (W + 200) + W + 200) % (W + 200) - 100; ctx.beginPath(); ctx.ellipse(x, 60 + (i % 3) * 30, 50, 18, 0, 0, 7); ctx.fill(); }
+  ctx.fillStyle = '#7bc47f';
+  for (let i = 0; i < 10; i++) { const x = ((i * 220 - camX * 0.5) % (W + 300) + W + 300) % (W + 300) - 150; ctx.beginPath(); ctx.arc(x, H, 140, Math.PI, 0); ctx.fill(); }
+
+  ctx.save(); ctx.translate(-Math.round(camX), 0);
+  for (const t of tiles) {
+    if (t.plat) { ctx.fillStyle = '#b5743b'; ctx.fillRect(t.x, t.y, t.w, t.h); ctx.fillStyle = '#d99a5b'; ctx.fillRect(t.x, t.y, t.w, 4); }
+    else { ctx.fillStyle = '#8b5a2b'; ctx.fillRect(t.x, t.y, t.w, t.h); if (!tiles.some(o => o.x === t.x && o.y === t.y - T)) { ctx.fillStyle = '#3cb043'; ctx.fillRect(t.x, t.y, t.w, 8); } }
+  }
+  ctx.fillStyle = '#ccc';
+  for (const s of spikes) for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.moveTo(s.x + i * 16, s.y + s.h); ctx.lineTo(s.x + i * 16 + 8, s.y); ctx.lineTo(s.x + i * 16 + 16, s.y + s.h); ctx.fill(); }
+  const now = performance.now() / 200;
+  for (const c of coins) if (!c.got) { ctx.fillStyle = '#fd0'; ctx.beginPath(); ctx.ellipse(c.x, c.y + Math.sin(now + c.t) * 3, 8 * Math.abs(Math.cos(now / 2 + c.t)) + 2, 9, 0, 0, 7); ctx.fill(); }
+  for (const e of enemies) if (e.alive) {
+    ctx.fillStyle = '#8a3fd1'; ctx.fillRect(e.x, e.y + 4, e.w, e.h - 4); ctx.fillRect(e.x + 3, e.y, e.w - 6, 4);
+    ctx.fillStyle = '#fff'; ctx.fillRect(e.x + 5, e.y + 8, 6, 6); ctx.fillRect(e.x + 15, e.y + 8, 6, 6);
+    ctx.fillStyle = '#000'; const d = e.vx > 0 ? 3 : 0; ctx.fillRect(e.x + 5 + d, e.y + 10, 3, 3); ctx.fillRect(e.x + 15 + d, e.y + 10, 3, 3);
+  }
+  // Ziel
+  ctx.fillStyle = '#555'; ctx.fillRect(goal.x, goal.y, 4, goal.h);
+  ctx.fillStyle = '#e33'; ctx.beginPath(); ctx.moveTo(goal.x + 4, goal.y); ctx.lineTo(goal.x + 30, goal.y + 10); ctx.lineTo(goal.x + 4, goal.y + 20); ctx.fill();
+  // Spieler
+  const p = player;
+  if (!(p.inv > 0 && Math.floor(p.inv / 5) % 2)) {
+    ctx.fillStyle = '#e63946'; ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#1d3557'; ctx.fillRect(p.x, p.y + p.h - 8, p.w, 8);
+    ctx.fillStyle = '#fff'; ctx.fillRect(p.x + (p.face > 0 ? 12 : 3), p.y + 6, 7, 7);
+    ctx.fillStyle = '#000'; ctx.fillRect(p.x + (p.face > 0 ? 16 : 3), p.y + 8, 3, 3);
+  }
+  for (const q of particles) { ctx.globalAlpha = q.life / 30; ctx.fillStyle = q.color; ctx.fillRect(q.x, q.y, 4, 4); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  hud.textContent = state === 'title' ? '' : `Level ${levelIdx + 1}   ★ ${score}   ♥ ${lives}`;
+  const msg = { title: ['HÜPF HÜPF', 'Pfeiltasten/WASD + Leertaste · Enter zum Starten'],
+    next: ['Level geschafft!', 'Enter für das nächste Level'], over: ['Game Over', `Punkte: ${score} · Enter für Neustart`],
+    win: ['Gewonnen! 🎉', `Punkte: ${score} · Enter für Neustart`] }[state];
+  if (msg) {
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.font = 'bold 56px system-ui'; ctx.fillText(msg[0], W / 2, H / 2 - 10);
+    ctx.font = '20px system-ui'; ctx.fillText(msg[1], W / 2, H / 2 + 30);
+  }
+}
+
+loadLevel(0);
+let last = performance.now(), accT = 0;
+(function loop(t) {
+  accT += Math.min(100, t - last); last = t;
+  while (accT >= 1000 / 60) { if (state === 'play') update(); accT -= 1000 / 60; }
+  draw();
+  requestAnimationFrame(loop);
+})(last);
+</script>
+</body>
+</html>
