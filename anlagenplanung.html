@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anlagen- & Kapazitätsplanung</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f4f1; --surface:#ffffff; --surface-2:#f0efec; --surface-3:#e7e6e1;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#85847e; --border:#dedcd5;
+  --accent:#2a78d6; --accent-ink:#ffffff;
+  --good:#0f7b3f; --good-bg:#e3f3e8; --warn:#9a6700; --warn-bg:#fdf1d6; --crit:#c62f2f; --crit-bg:#fbe5e4;
+  --c-neubau:#6250d6; --c-reinraum:#1baf7a; --c-anlage:#2a78d6; --c-ramp:#eb6834;
+  --s-cap:#2a78d6; --s-dem:#eb6834;
+  --scene-bg:#e9ecef; --grid:#ecebe6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2d2d2a;
+    --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --border:#34342f;
+    --accent:#3987e5; --accent-ink:#ffffff;
+    --good:#4cc47e; --good-bg:#16301f; --warn:#e2b04a; --warn-bg:#352a10; --crit:#ef6b6b; --crit-bg:#3a1818;
+    --c-neubau:#9085e9; --c-reinraum:#199e70; --c-anlage:#3987e5; --c-ramp:#d95926;
+    --s-cap:#3987e5; --s-dem:#d95926;
+    --scene-bg:#1b1e22; --grid:#2a2a27;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2d2d2a;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --border:#34342f;
+  --accent:#3987e5; --accent-ink:#ffffff;
+  --good:#4cc47e; --good-bg:#16301f; --warn:#e2b04a; --warn-bg:#352a10; --crit:#ef6b6b; --crit-bg:#3a1818;
+  --c-neubau:#9085e9; --c-reinraum:#199e70; --c-anlage:#3987e5; --c-ramp:#d95926;
+  --s-cap:#3987e5; --s-dem:#d95926;
+  --scene-bg:#1b1e22; --grid:#2a2a27;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border)}
+.hwrap{max-width:1400px;margin:0 auto;padding:10px 16px 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.brand{font-weight:650;font-size:16px;margin-right:auto}
+.brand small{display:block;font-weight:400;color:var(--text-2);font-size:12px}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+nav.tabs{max-width:1400px;margin:0 auto;padding:0 16px;display:flex;gap:2px;overflow-x:auto}
+nav.tabs button{border:0;background:none;color:var(--text-2);padding:10px 14px;font:inherit;font-weight:550;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+nav.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+nav.tabs button .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--surface-3);font-size:11px;margin-right:6px}
+nav.tabs button.on .n{background:var(--accent);color:var(--accent-ink)}
+main{max-width:1400px;margin:0 auto;padding:16px}
+section.page{display:none}
+section.page.on{display:block}
+h2{font-size:18px;margin:4px 0 4px}
+h3{font-size:15px;margin:0 0 10px}
+p.lead{color:var(--text-2);margin:0 0 16px;max-width:900px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;min-width:0;margin-bottom:16px}
+.grid>.card{margin-bottom:0}
+.grid{margin-bottom:16px}
+.hint{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:7px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:3px 8px;font-size:12px}
+input,select{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 6px;min-width:0}
+input[type=number]{width:90px;text-align:right}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.form{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}
+.form label{color:var(--text-2)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+thead th{font-weight:600;color:var(--text-2);font-size:12px;background:var(--surface-2)}
+thead th:first-child{background:var(--surface-2)}
+td.l,th.l{text-align:left}
+td.c,th.c{text-align:center}
+tr.sum td{font-weight:650}
+tr.sub td{color:var(--text-2);font-size:12px}
+tr.sub td:first-child{padding-left:20px}
+.yearbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:650;cursor:pointer;padding:2px 4px;border-radius:4px;text-decoration:underline;text-underline-offset:3px}
+.yearbtn.on{background:var(--accent);color:var(--accent-ink);text-decoration:none}
+td input[type=number]{width:96px}
+.pos{color:var(--good)} .neg{color:var(--crit);font-weight:650}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600;background:var(--surface-3);color:var(--text)}
+.chip.ramp{background:color-mix(in srgb,var(--c-ramp) 22%,transparent)}
+.chip.nb{background:color-mix(in srgb,var(--c-neubau) 22%,transparent)}
+.alerts{display:flex;flex-direction:column;gap:6px;margin:0 0 16px}
+.alert{border-radius:8px;padding:8px 12px;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+.alert b{white-space:nowrap}
+.alert.crit{background:var(--crit-bg);color:var(--crit)}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.ok{background:var(--good-bg);color:var(--good)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.kpi .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.kpi .t{font-size:12px;color:var(--text-2)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-2);margin:6px 0 10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.legend i.line{height:2px;border-radius:0;vertical-align:3px;width:16px}
+/* Chart */
+.chart svg{display:block;width:100%;height:auto}
+.chart .ax{fill:var(--muted);font-size:11px}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);display:none;max-width:280px}
+#tip .tt{font-weight:650;margin-bottom:3px}
+#tip .r{display:flex;justify-content:space-between;gap:14px}
+#tip .r span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
+/* Gantt */
+.gantt{position:relative;border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:72vh;background:var(--surface)}
+.g-row{display:flex;min-height:26px;border-bottom:1px solid var(--grid)}
+.g-row.head{position:sticky;top:0;z-index:4;background:var(--surface-2);min-height:0}
+.g-lab{position:sticky;left:0;z-index:3;background:var(--surface);flex:0 0 280px;width:280px;padding:4px 8px;font-size:12px;border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.g-row.head .g-lab{background:var(--surface-2);font-weight:600;color:var(--text-2)}
+.g-row.lvl0 .g-lab{font-weight:650;background:var(--surface-2)}
+.g-row.lvl0{background:var(--surface-2)}
+.g-row.lvl1 .g-lab{padding-left:22px;font-weight:600}
+.g-row.lvl2 .g-lab{padding-left:38px;color:var(--text-2)}
+.g-tl{position:relative;flex:0 0 auto}
+.g-bar{position:absolute;top:6px;height:14px;border-radius:4px;cursor:default}
+.g-bar.sum{top:9px;height:8px;border-radius:2px;opacity:.55}
+.g-bar.crit{outline:2px solid var(--crit);outline-offset:1px}
+.g-ms{position:absolute;top:6px;width:12px;height:12px;transform:rotate(45deg);margin-left:-6px;background:var(--text);border:2px solid var(--surface)}
+.g-yr{display:flex}
+.g-yr div{border-left:1px solid var(--border);font-size:11px;padding:2px 4px;color:var(--text-2);font-weight:600;overflow:hidden}
+.g-mo{display:flex}
+.g-mo div{border-left:1px solid var(--grid);font-size:9px;text-align:center;color:var(--muted);overflow:hidden}
+.g-vl{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--crit);z-index:2;pointer-events:none}
+.g-yl{position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--grid);pointer-events:none}
+.tog{border:0;background:none;color:var(--text-2);cursor:pointer;font:inherit;width:16px;padding:0}
+/* Sim */
+.simwrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+@media (max-width:900px){.simwrap{grid-template-columns:1fr}}
+#scene{position:relative;height:min(68vh,620px);min-height:360px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--scene-bg)}
+#scene canvas{display:block;width:100%;height:100%}
+#scene .ovl{position:absolute;left:12px;top:10px;background:color-mix(in srgb,var(--surface) 85%,transparent);border-radius:8px;padding:6px 10px;pointer-events:none}
+#scene .ovl .d{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.simctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.simctl input[type=range]{flex:1 1 200px}
+.evlog{max-height:220px;overflow:auto;font-size:12px}
+.evlog div{padding:3px 0;border-bottom:1px solid var(--grid)}
+.evlog div.past{color:var(--text)} .evlog div.fut{color:var(--muted)}
+.stat-list .r{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--grid)}
+.stat-list .r span:last-child{font-weight:650;font-variant-numeric:tabular-nums}
+.phase-tbl input[type=text]{width:100%;min-width:180px}
+.phase-tbl input[type=number]{width:64px}
+.tag{font-size:11px;color:var(--muted)}
+@media print{header,.tools{position:static} nav.tabs,.btn{display:none} section.page{display:block!important;page-break-after:always}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="brand">Anlagen- &amp; Kapazitätsplanung<small>Grundlagen · Absatz &amp; Anlagenlogik · Zeitplan · 3D-Simulation</small></div>
+    <div class="tools">
+      <button class="btn sm" id="bExport" title="Einstellungen als JSON speichern">Export JSON</button>
+      <button class="btn sm" id="bImport" title="Einstellungen aus JSON laden">Import JSON</button>
+      <button class="btn sm" id="bCsv" title="Zeitplan als CSV exportieren">Zeitplan CSV</button>
+      <button class="btn sm" id="bReset">Zurücksetzen</button>
+      <button class="btn sm" id="bTheme" title="Hell/Dunkel">◐</button>
+      <input type="file" id="fImport" accept="application/json" hidden>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-p="grund" class="on"><span class="n">1</span>Grundlagen</button>
+    <button data-p="absatz"><span class="n">2</span>Absatz &amp; Anlagen</button>
+    <button data-p="zeit"><span class="n">3</span>Zeitplan</button>
+    <button data-p="sim"><span class="n">4</span>Simulation 3D</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ 1 GRUNDLAGEN ============ -->
+<section class="page on" id="p-grund">
+  <h2>Grundlagen</h2>
+  <p class="lead">Anlagenvarianten, Ramp-Up und Schichtmodell je Betriebsjahr einer Anlage. Betriebsjahr 1 ist das Ramp-Up-Jahr (Leistung steigt linear von Start- auf End-Leistung), Jahr 2 und ab Jahr 3 laufen mit eigener Leistung und eigenem Schichtmodell. Alle Werte wirken sofort auf Absatzplanung, Zeitplan und Simulation.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Planungsrahmen</h3>
+      <div class="form">
+        <label for="planStart">Planungsstart (heute)</label><input type="month" id="planStart">
+        <label>Feiertage / Betriebsruhe pro Jahr</label><span><input type="number" data-k="holidays" min="0" max="60" step="1"> Tage</span>
+        <label>Referenzjahr Arbeitstage</label><span><input type="number" id="refYear" min="2000" max="2100" step="1"></span>
+      </div>
+      <p class="hint">Arbeitstage werden aus dem echten Kalender gezählt (Mo–Fr / Mo–Sa / Mo–So) minus Feiertage/Betriebsruhe anteilig pro Monat.</p>
+    </div>
+    <div class="card">
+      <h3>Anlagenvarianten</h3>
+      <div class="scroll"><table id="tVariants"></table></div>
+      <p class="hint">Kapazität = Ausbringung × OEE × Stunden/Schicht × Schichten × Arbeitstage × Leistungsfaktor.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Ramp-Up &amp; Schichtmodell je Betriebsjahr</h3>
+    <div class="scroll"><table id="tShifts"></table></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Arbeitstage-Kalender <span class="tag" id="refYearLab"></span></h3>
+      <div class="scroll"><table id="tCal"></table></div>
+    </div>
+    <div class="card">
+      <h3>Leistungsverlauf einer Anlage (36 Monate ab Ramp-Up-Start)</h3>
+      <div class="legend"><span><i style="background:var(--s-cap)"></i>Variante A</span><span><i style="background:var(--c-reinraum)"></i>Variante B</span></div>
+      <div class="chart" id="cRamp"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Vorlaufzeiten (Bausteine für den Zeitplan)</h3>
+    <p class="hint" style="margin-top:-6px">Der Zeitplan wird <b>rückwärts vom Ramp-Up-Start</b> terminiert. Die Anlage kann parallel zum Raum bestellt und gefertigt werden – ab dem markierten Vorgang („Raum nötig“) muss der Reinraum fertig sein. Ist für eine Anlage „Neubau“ angekreuzt, muss vor dem Reinraum das Gebäude stehen.</p>
+    <div class="grid" style="margin-bottom:0" id="phaseEditors"></div>
+  </div>
+</section>
+
+<!-- ============ 2 ABSATZ ============ -->
+<section class="page" id="p-absatz">
+  <h2>Absatz &amp; Anlagenbedarf</h2>
+  <p class="lead">Absatz pro Jahr eingeben – die Anlagenlogik berechnet, wann welche Anlage ihren Ramp-Up starten muss, damit kein negativer Saldo entsteht. Klick auf ein Jahr öffnet die Monatsübersicht.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Anlagenlogik</h3>
+      <div class="form">
+        <label>Erste Anlage(n) Variante</label>
+        <span><select data-k="logic.first"><option value="A">A</option><option value="B">B</option></select> &nbsp;Anzahl <input type="number" data-k="logic.firstCount" min="0" max="20" step="1" style="width:60px"></span>
+        <label>Danach nur Variante</label>
+        <span><select data-k="logic.next"><option value="A">A</option><option value="B">B</option></select></span>
+        <label>Max. Anzahl Anlagen</label><span><input type="number" data-k="logic.max" min="1" max="30" step="1" style="width:60px"></span>
+        <label>Saldo-Prüfung</label>
+        <span><select data-k="logic.mode">
+          <option value="year">Jahressaldo ≥ 0</option>
+          <option value="month">Monatssaldo ≥ 0 (streng)</option>
+          <option value="cum">Kumulierter Saldo ≥ 0 (mit Lager)</option>
+        </select></span>
+        <label>Ein Ramp-Up pro Jahr</label><span><input type="checkbox" data-k="logic.avoidSame"> <span class="hint">vermeidet 2 Anlagenstarts im selben Jahr</span></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Planungshorizont</h3>
+      <div class="form">
+        <label>Startjahr</label><span><input type="number" data-k="startYear" min="2000" max="2100" step="1"></span>
+        <label>Anzahl Jahre</label><span><input type="number" data-k="years" min="1" max="30" step="1"></span>
+      </div>
+      <p class="hint">Anlagen dürfen auch vor dem Startjahr anlaufen, wenn das für einen ausgeglichenen Saldo nötig ist. Ob die Vorlaufzeiten dann noch reichen, zeigt die Warnung.</p>
+      <div class="kpis" id="absKpis" style="margin:10px 0 0"></div>
+    </div>
+  </div>
+
+  <div class="alerts" id="alerts"></div>
+
+  <div class="card">
+    <h3>Jahresübersicht</h3>
+    <div class="scroll"><table id="tYears"></table></div>
+    <div id="monthBox" style="margin-top:16px"></div>
+  </div>
+
+  <div class="card">
+    <h3>Absatz vs. Kapazität</h3>
+    <div class="legend"><span><i style="background:var(--s-cap)"></i>Kapazität</span><span><i class="line" style="background:var(--s-dem)"></i>Absatz</span><span><i style="background:var(--c-ramp);transform:rotate(45deg);width:9px;height:9px"></i>Ramp-Up-Start</span></div>
+    <div class="chart" id="cYears"></div>
+  </div>
+
+  <div class="card">
+    <h3>Anlagen</h3>
+    <p class="hint" style="margin-top:-6px">Variante je Anlage übersteuern oder „Neubau“ ankreuzen: dann wird vor dem Reinraum dieser Anlage ein neues Gebäude gebaut. Alle folgenden Anlagen kommen in dieses Gebäude, bis der nächste Neubau angekreuzt ist.</p>
+    <div class="scroll"><table id="tPlants"></table></div>
+  </div>
+</section>
+
+<!-- ============ 3 ZEITPLAN ============ -->
+<section class="page" id="p-zeit">
+  <h2>Zeitplan</h2>
+  <p class="lead">Rückwärtsterminierung vom berechneten Ramp-Up-Start: Neubau (falls angekreuzt) → Reinraum / Hygieneraum → Anlage (Bestellung, Fertigung, Einbau, Montage, Validierung) → Ramp-Up. Rot umrandete Vorgänge liegen vor dem Planungsstart und sind so nicht mehr einhaltbar.</p>
+  <div class="kpis" id="zKpis"></div>
+  <div class="alerts" id="zAlerts"></div>
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+      <div class="legend" style="margin:0">
+        <span><i style="background:var(--c-neubau)"></i>Neubau</span>
+        <span><i style="background:var(--c-reinraum)"></i>Reinraum</span>
+        <span><i style="background:var(--c-anlage)"></i>Anlage</span>
+        <span><i style="background:var(--c-ramp)"></i>Ramp-Up</span>
+        <span><i style="background:var(--text);transform:rotate(45deg);width:9px;height:9px"></i>Ramp-Up-Start (SOP)</span>
+        <span><i class="line" style="background:var(--crit)"></i>Planungsstart</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" id="gExp">Alle aufklappen</button>
+        <button class="btn sm" id="gCol">Alle zuklappen</button>
+        <select id="gZoom"><option value="10">Zoom S</option><option value="16" selected>Zoom M</option><option value="26">Zoom L</option></select>
+      </div>
+    </div>
+    <div class="gantt" id="gantt" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h3>Meilensteine je Anlage</h3>
+    <div class="scroll"><table id="tMs"></table></div>
+  </div>
+</section>
+
+<!-- ============ 4 SIMULATION ============ -->
+<section class="page" id="p-sim">
+  <h2>Simulation</h2>
+  <p class="lead">Animierter Ablauf des Plans: Reinräume entstehen, Anlagen werden eingebaut, validiert und gehen in den Ramp-Up. Neubauten wachsen, sobald sie dran sind. Maus/Finger: drehen, zoomen, verschieben.</p>
+  <div class="simwrap">
+    <div>
+      <div id="scene"><div class="ovl"><div class="d" id="simDate">–</div><div class="hint" id="simSub"></div></div></div>
+      <div class="simctl">
+        <button class="btn primary" id="simPlay">▶ Abspielen</button>
+        <button class="btn" id="simRestart">⟲</button>
+        <select id="simSpeed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+        <input type="range" id="simSlider" min="0" max="100" step="0.01" value="0" aria-label="Zeit">
+      </div>
+      <div class="card">
+        <div class="legend" style="margin-top:0"><span><i style="background:var(--s-cap)"></i>Kapazität / Monat</span><span><i class="line" style="background:var(--s-dem)"></i>Absatz / Monat</span></div>
+        <div class="chart" id="cSim"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Status</h3>
+        <div class="stat-list" id="simStats"></div>
+      </div>
+      <div class="card">
+        <h3>Ereignisse</h3>
+        <div class="evlog" id="simLog"></div>
+      </div>
+      <div class="card">
+        <h3>Farben</h3>
+        <div class="legend" style="flex-direction:column;gap:6px;margin:0">
+          <span><i style="background:#7fc8e8"></i>Reinraum im Bau / fertig</span>
+          <span><i style="background:#f08a3c"></i>Anlage Einbau &amp; Montage</span>
+          <span><i style="background:#f2c230"></i>Prozessvalidierung</span>
+          <span><i style="background:#57c17b"></i>Ramp-Up / Produktion</span>
+          <span><i style="background:#9b8cf0"></i>Neubau im Bau</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+"use strict";
+/* =================== Helpers =================== */
+const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const yOf=M=>Math.floor(M/12), mOf=M=>((M%12)+12)%12;
+const fmtM=M=>MON[mOf(M)]+' '+yOf(M);
+const nf=new Intl.NumberFormat('de-DE',{maximumFractionDigits:0});
+const nf1=new Intl.NumberFormat('de-DE',{maximumFractionDigits:1,minimumFractionDigits:1});
+const fmt=v=>nf.format(Math.round(v));
+const fmtK=v=>{const a=Math.abs(v); if(a>=1e6) return nf1.format(v/1e6)+' Mio'; if(a>=1e4) return nf.format(v/1e3)+' T'; return fmt(v);};
+const pct=v=>isFinite(v)?nf.format(v*100)+' %':'–';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const niceMax=v=>{if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v)));for(const m of [1,1.2,1.6,2,2.4,3,4,5,6,8,10]) if(m*e>=v) return m*e;return 10*e;};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const DPW_LAB={5:'Mo–Fr',6:'Mo–Sa',7:'Mo–So'};
+
+/* =================== Default-Daten =================== */
+const DEFAULT={
+  planStart:'2026-11', holidays:10, refYear:2029,
+  startYear:2029, years:13,
+  variants:{A:{name:'Variante A',rate:60,oee:75},B:{name:'Variante B',rate:110,oee:80}},
+  shifts:[{dpw:5,n:1,h:8},{dpw:5,n:2,h:8},{dpw:6,n:3,h:8}],
+  ramp:{start:30,end:90,y2:100,y3:100},
+  logic:{first:'A',firstCount:1,next:'B',max:10,mode:'year',avoidSame:true},
+  demand:{2029:40000,2030:150000,2031:350000,2032:600000,2033:900000,2034:1200000,2035:1600000,2036:2000000,2037:2400000,2038:2800000,2039:3100000,2040:3400000,2041:3600000},
+  plantCfg:Array.from({length:10},(_,i)=>({variant:'auto',neubau:i===3||i===7})),
+  phases:{
+    neubau:[{n:'Planung & Baugenehmigung',d:6},{n:'Rohbau',d:6},{n:'Gebäudehülle & TGA',d:4},{n:'Abnahme & Übergabe',d:1}],
+    reinraum:[{n:'Konzept & GMP-Auslegung',d:2},{n:'Ausschreibung & Vergabe',d:1},{n:'Ausbau Reinraumhülle (Wand/Decke/Boden)',d:3},{n:'HLK, Reinraumtechnik & Medien',d:2},{n:'Qualifizierung & Partikel-Freimessung',d:1}],
+    anlage:[{n:'Spezifikation & Bestellung',d:2},{n:'Fertigung beim Lieferanten',d:9},{n:'FAT & Transport',d:1},{n:'Einbau / Einbringung',d:1,room:true},{n:'Montage & Inbetriebnahme',d:2},{n:'Prozessvalidierung (IQ/OQ/PQ)',d:3}],
+    rampDur:12
+  }
+};
+const LS='anlagenplanung.v1';
+function load(){try{const s=localStorage.getItem(LS); if(!s) return null; return Object.assign(clone(DEFAULT),JSON.parse(s));}catch(e){return null;}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}}
+let S=load()||clone(DEFAULT);
+function ensureCfg(){while(S.plantCfg.length<S.logic.max) S.plantCfg.push({variant:'auto',neubau:false});}
+ensureCfg();
+
+/* =================== Kapazitätsmodell =================== */
+const calCache=new Map();
+function calDays(M,dpw){const k=M*10+dpw; let v=calCache.get(k); if(v!==undefined) return v;
+  const y=yOf(M),m=mOf(M),n=new Date(y,m+1,0).getDate(); v=0;
+  for(let d=1;d<=n;d++){const w=new Date(y,m,d).getDay(); if(dpw===7||(dpw===6&&w!==0)||(dpw===5&&w!==0&&w!==6)) v++;}
+  calCache.set(k,v); return v;}
+const workDays=(M,dpw)=>Math.max(0,calDays(M,dpw)-S.holidays/12);
+const shiftIdx=k=>k<12?0:k<24?1:2;
+function rampFactor(k){const r=S.ramp; if(k<12) return (r.start+(r.end-r.start)*(k/11))/100; return (k<24?r.y2:r.y3)/100;}
+function plantCap(v,start,M){const k=M-start; if(k<0) return 0; const sh=S.shifts[shiftIdx(k)], V=S.variants[v];
+  return V.rate*(V.oee/100)*sh.h*sh.n*workDays(M,sh.dpw)*rampFactor(k);}
+function variantOf(i){const c=S.plantCfg[i]; if(c&&c.variant&&c.variant!=='auto') return c.variant; return i<S.logic.firstCount?S.logic.first:S.logic.next;}
+
+/* =================== Anlagenlogik / Planung =================== */
+let P=null; // Planergebnis
+function computePlan(){
+  const H0=S.startYear*12, H1=(S.startYear+S.years)*12, LO=H0-48, N=H1-LO, mode=S.logic.mode, avoid=!!S.logic.avoidSame;
+  const D=new Float64Array(N);
+  for(let M=H0;M<H1;M++) D[M-LO]=(+S.demand[yOf(M)]||0)/12;
+  // Perioden
+  const periods=[];
+  if(mode==='year'){for(let y=0;y<S.years;y++) periods.push({a:H0+y*12,b:H0+y*12+11});}
+  else {for(let M=H0;M<H1;M++) periods.push({a:mode==='cum'?H0:M,b:M});}
+  const balOf=(C,p)=>{let s=0; for(let M=p.a;M<=p.b;M++) s+=C[M-LO]-D[M-LO]; return s;};
+  const contrib=(v,s,p)=>{let c=0; for(let M=Math.max(p.a,s);M<=p.b;M++) c+=plantCap(v,s,M); return c;};
+  function greedy(caps){
+    const plants=[], C=new Float64Array(N); let conflict=null; const flags=[];
+    for(let i=0;i<S.logic.max;i++){
+      let pi=-1, def=0;
+      for(let j=0;j<periods.length;j++){const b=balOf(C,periods[j]); if(b< -0.5){pi=j;def=-b;break;}}
+      if(pi<0) break;
+      const p=periods[pi], v=variantOf(i);
+      const last=plants.length?plants[plants.length-1].start:-Infinity;
+      const hi=Math.min(p.b, caps[i]!=null?caps[i]:Infinity);
+      const minS=Math.max(LO, avoid&&plants.length?(yOf(last)+1)*12:(isFinite(last)?last:LO));
+      let best=null, sameYear=false;
+      for(let s=hi;s>=minS;s--){ if(contrib(v,s,p)>=def-0.5){best=s;break;} }
+      if(best==null){
+        // Würde ein Start im selben Jahr wie die Vorgängeranlage reichen?
+        if(avoid&&plants.length){
+          const lo2=Math.max(LO,last);
+          for(let s=Math.min(hi,minS-1);s>=lo2;s--){ if(contrib(v,s,p)>=def-0.5){best=s;sameYear=true;break;} }
+          if(best==null && hi<minS){ best=Math.max(lo2,Math.min(hi,minS-1)); sameYear=true; }
+          if(sameYear && !conflict) conflict={i,year:yOf(last)};
+        }
+        if(best==null){
+          // eine Anlage reicht nicht: Start mit maximalem Beitrag (spätester nahe Maximum)
+          let mx=-1; const cs=[];
+          for(let s=hi;s>=minS;s--){const c=contrib(v,s,p); cs.push([s,c]); if(c>mx) mx=c;}
+          best=minS; for(const [s,c] of cs){ if(c>=mx*0.999){best=s;break;} }
+          if(hi<minS) best=Math.max(LO,hi);
+        }
+      }
+      const cap=new Float64Array(N); for(let M=best;M<H1;M++){const x=plantCap(v,best,M); cap[M-LO]=x; C[M-LO]+=x;}
+      plants.push({i,v,start:best,cap,sameYear});
+    }
+    return {plants,C,conflict};
+  }
+  const caps={}; let res=null;
+  for(let it=0;it<60;it++){
+    res=greedy(caps);
+    if(!res.conflict) break;
+    const i=res.conflict.i; if(i<1) break;
+    const nc=res.conflict.year*12-1; if(nc<LO) break;
+    const prevCap=caps[i-1]!=null?caps[i-1]:Infinity;
+    if(nc>=prevCap) break;
+    caps[i-1]=nc;
+  }
+  const {plants,C}=res;
+  // Jahresauswertung
+  const years=[]; let cumBal=0;
+  for(let y=0;y<S.years;y++){
+    const Y=S.startYear+y; let d=0,c=0,minMB=Infinity;
+    for(let M=Y*12;M<Y*12+12;M++){d+=D[M-LO];c+=C[M-LO]; cumBal+=C[M-LO]-D[M-LO]; minMB=Math.min(minMB,C[M-LO]-D[M-LO]);}
+    years.push({Y,d,c,bal:c-d,cum:cumBal,minMB,active:plants.filter(p=>p.start<=Y*12+11).length,starts:plants.filter(p=>yOf(p.start)===Y)});
+  }
+  const deficit=years.filter(y=>mode==='year'?y.bal<-0.5:mode==='month'?y.minMB<-0.5:y.cum<-0.5);
+  P={H0,H1,LO,D,C,plants,years,deficit,mode};
+  schedule();
+  return P;
+}
+
+/* =================== Terminierung (rückwärts) =================== */
+function schedule(){
+  const ps=S.phases, plan=ym2M(S.planStart);
+  const buildings=[]; const warn=[];
+  P.plants.forEach((pl,idx)=>{
+    const cfg=S.plantCfg[pl.i]||{};
+    if(idx===0||cfg.neubau){buildings.push({id:buildings.length,isNew:!!cfg.neubau,plants:[],first:idx});}
+    const b=buildings[buildings.length-1]; pl.b=b.id; pl.slot=b.plants.length; b.plants.push(idx);
+    const R=pl.start; pl.R=R; pl.full=R+ps.rampDur;
+    // Anlage
+    let t=R; const an=[]; for(let j=ps.anlage.length-1;j>=0;j--){const d=+ps.anlage[j].d||0; an.unshift({n:ps.anlage[j].n,s:t-d,e:t,room:!!ps.anlage[j].room}); t-=d;}
+    pl.an=an;
+    const roomPh=an.find(x=>x.room); pl.roomNeed=roomPh?roomPh.s:R;
+    pl.einbau=roomPh?roomPh.s:(an.length?an[an.length-1].s:R);
+    pl.val=an.length?an[an.length-1].s:R;
+    t=pl.roomNeed; const rr=[]; for(let j=ps.reinraum.length-1;j>=0;j--){const d=+ps.reinraum[j].d||0; rr.unshift({n:ps.reinraum[j].n,s:t-d,e:t}); t-=d;}
+    pl.rr=rr; pl.rrS=rr.length?rr[0].s:pl.roomNeed; pl.rrE=pl.roomNeed;
+    pl.nb=null;
+    if(b.isNew && b.first===idx){t=pl.rrS; const nb=[]; for(let j=ps.neubau.length-1;j>=0;j--){const d=+ps.neubau[j].d||0; nb.unshift({n:ps.neubau[j].n,s:t-d,e:t}); t-=d;}
+      pl.nb=nb; b.s=nb.length?nb[0].s:pl.rrS; b.e=pl.rrS;}
+    if(b.id===0&&!b.isNew){b.s=-Infinity;b.e=-Infinity;}
+    pl.first=Math.min(pl.rrS, an.length?an[0].s:R, pl.nb&&pl.nb.length?pl.nb[0].s:Infinity);
+    pl.late=Math.max(0,plan-pl.first);
+    pl.name='Anlage '+(idx+1);
+    if(pl.late>0) warn.push({lvl:'crit',t:`${pl.name}: Vorlaufzeit nicht einhaltbar – Start hätte ${pl.late} Monat(e) vor dem Planungsstart (${fmtM(pl.first)}) liegen müssen.`});
+    if(b.isNew && b.first!==idx && pl.rrS<b.e) warn.push({lvl:'warn',t:`${pl.name}: Reinraumbau (${fmtM(pl.rrS)}) beginnt, bevor ${bName(b)} fertig ist (${fmtM(b.e)}).`});
+    if(pl.sameYear) warn.push({lvl:'warn',t:`${pl.name}: Ramp-Up im selben Jahr wie Vorgängeranlage (${yOf(pl.R)}) – ließ sich bei diesem Absatzsprung nicht vermeiden.`});
+  });
+  P.buildings=buildings; P.schedWarn=warn;
+  P.tMin=Math.min(...P.plants.map(p=>p.first),P.H0); P.tMax=Math.max(P.H1-1,...P.plants.map(p=>p.full));
+}
+const bName=b=>b.isNew?('Neubau '+(P.buildings.filter(x=>x.isNew&&x.id<=b.id).length)):'Bestandsgebäude';
+function ym2M(s){const [y,m]=String(s||'2026-01').split('-').map(Number); return y*12+(m-1);}
+
+/* =================== Tooltip =================== */
+const tip=$('#tip');
+function showTip(ev,html){tip.innerHTML=html; tip.style.display='block'; const w=tip.offsetWidth,h=tip.offsetHeight;
+  let x=ev.clientX+14,y=ev.clientY+14; if(x+w>innerWidth-8) x=ev.clientX-w-14; if(y+h>innerHeight-8) y=ev.clientY-h-14; tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';}
+const hideTip=()=>{tip.style.display='none';};
+const tr=(a,b)=>`<div class="r"><span>${a}</span><span>${b}</span></div>`;
+
+/* =================== Render: Grundlagen =================== */
+function yearCapRef(v,j){ // Kapazität eines vollen Betriebsjahres j im Referenzjahr
+  const sh=S.shifts[j],V=S.variants[v]; let days=0; for(let m=0;m<12;m++) days+=workDays(S.refYear*12+m,sh.dpw);
+  let f; if(j===0){f=(S.ramp.start+S.ramp.end)/2/100;} else f=(j===1?S.ramp.y2:S.ramp.y3)/100;
+  return {days,hours:days*sh.n*sh.h,cap:V.rate*V.oee/100*sh.h*sh.n*days*f};
+}
+function renderGrund(){
+  $('#planStart').value=S.planStart; $('#refYear').value=S.refYear; $('#refYearLab').textContent='Referenzjahr '+S.refYear;
+  let h='<thead><tr><th>Variante</th><th class="l">Bezeichnung</th><th>Ausbringung Stk/h</th><th>OEE %</th><th>Kap. Jahr 1</th><th>Kap. Jahr 2</th><th>Kap. ab Jahr 3</th></tr></thead><tbody>';
+  for(const v of ['A','B']){const V=S.variants[v];
+    h+=`<tr><td><b>${v}</b></td><td class="l"><input type="text" data-k="variants.${v}.name" value="${esc(V.name)}" style="width:130px"></td>
+    <td><input type="number" data-k="variants.${v}.rate" min="0" step="1" value="${V.rate}"></td>
+    <td><input type="number" data-k="variants.${v}.oee" min="1" max="100" step="1" value="${V.oee}" style="width:70px"></td>
+    ${[0,1,2].map(j=>`<td>${fmt(yearCapRef(v,j).cap)}</td>`).join('')}</tr>`;}
+  $('#tVariants').innerHTML=h+'</tbody>';
+  const lab=['Jahr 1 (Ramp-Up)','Jahr 2','ab Jahr 3'];
+  h='<thead><tr><th>Betriebsjahr</th>'+lab.map(l=>`<th class="c">${l}</th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr><td>Arbeitstage-Modell</td>'+S.shifts.map((s,j)=>`<td class="c"><select data-k="shifts.${j}.dpw" data-num="1">${[5,6,7].map(d=>`<option value="${d}" ${s.dpw==d?'selected':''}>${DPW_LAB[d]}</option>`).join('')}</select></td>`).join('')+'</tr>';
+  h+='<tr><td>Schichten pro Tag</td>'+S.shifts.map((s,j)=>`<td class="c"><select data-k="shifts.${j}.n" data-num="1">${[1,2,3].map(d=>`<option value="${d}" ${s.n==d?'selected':''}>${d}-Schicht</option>`).join('')}</select></td>`).join('')+'</tr>';
+  h+='<tr><td>Stunden pro Schicht</td>'+S.shifts.map((s,j)=>`<td class="c"><input type="number" data-k="shifts.${j}.h" min="1" max="12" step="0.5" value="${s.h}" style="width:70px"></td>`).join('')+'</tr>';
+  h+=`<tr><td>Leistung (% von Nennleistung)</td><td class="c"><input type="number" data-k="ramp.start" min="0" max="100" value="${S.ramp.start}" style="width:60px"> → <input type="number" data-k="ramp.end" min="0" max="100" value="${S.ramp.end}" style="width:60px"> <span class="hint">Monat 1→12</span></td>
+      <td class="c"><input type="number" data-k="ramp.y2" min="0" max="100" value="${S.ramp.y2}" style="width:70px"></td><td class="c"><input type="number" data-k="ramp.y3" min="0" max="100" value="${S.ramp.y3}" style="width:70px"></td></tr>`;
+  const refs=[0,1,2].map(j=>yearCapRef('A',j));
+  h+='<tr class="sum"><td>Arbeitstage / Jahr</td>'+refs.map(r=>`<td class="c">${nf1.format(r.days)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Betriebsstunden / Jahr</td>'+refs.map(r=>`<td class="c">${fmt(r.hours)} h</td>`).join('')+'</tr>';
+  h+='<tr><td>Ø Leistungsfaktor</td>'+[ (S.ramp.start+S.ramp.end)/2, S.ramp.y2, S.ramp.y3].map(f=>`<td class="c">${nf.format(f)} %</td>`).join('')+'</tr>';
+  for(const v of ['A','B']) h+=`<tr class="sum"><td>Kapazität ${esc(S.variants[v].name)} / Jahr</td>`+[0,1,2].map(j=>`<td class="c">${fmt(yearCapRef(v,j).cap)} Stk</td>`).join('')+'</tr>';
+  $('#tShifts').innerHTML=h+'</tbody>';
+  // Kalender
+  h='<thead><tr><th>Modell</th>'+MON.map(m=>`<th>${m}</th>`).join('')+'<th>Jahr</th></tr></thead><tbody>';
+  for(const d of [5,6,7]){let sum=0; h+=`<tr><td>${DPW_LAB[d]}</td>`; for(let m=0;m<12;m++){const w=workDays(S.refYear*12+m,d); sum+=w; h+=`<td>${nf1.format(w)}</td>`;} h+=`<td><b>${nf1.format(sum)}</b></td></tr>`;}
+  $('#tCal').innerHTML=h+'</tbody>';
+  renderRampChart();
+  renderPhaseEditors();
+}
+function renderRampChart(){
+  const W=560,H=200,ml=50,mr=10,mt=10,mb=28; const n=36, M0=S.refYear*12;
+  const sA=[],sB=[]; for(let k=0;k<n;k++){sA.push(plantCap('A',M0,M0+k)); sB.push(plantCap('B',M0,M0+k));}
+  const mx=niceMax(Math.max(1,...sA,...sB)*1.02); const x=k=>ml+(W-ml-mr)*(k+.5)/n, y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monatskapazität 36 Monate">`;
+  for(let i=0;i<=4;i++){const v=mx*i/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;}
+  [12,24].forEach(k=>{g+=`<line x1="${ml+(W-ml-mr)*k/n}" x2="${ml+(W-ml-mr)*k/n}" y1="${mt}" y2="${H-mb}" stroke="var(--border)" stroke-dasharray="3 3"/>`;});
+  ['Jahr 1','Jahr 2','Jahr 3'].forEach((t,i)=>g+=`<text class="ax" x="${ml+(W-ml-mr)*(i*12+6)/n}" y="${H-8}" text-anchor="middle">${t}</text>`);
+  const path=(s)=>s.map((v,k)=>(k?'L':'M')+x(k).toFixed(1)+','+y(v).toFixed(1)).join('');
+  g+=`<path d="${path(sA)}" fill="none" stroke="var(--s-cap)" stroke-width="2"/><path d="${path(sB)}" fill="none" stroke="var(--c-reinraum)" stroke-width="2"/>`;
+  for(let k=0;k<n;k++) g+=`<rect x="${x(k)-(W-ml-mr)/n/2}" y="${mt}" width="${(W-ml-mr)/n}" height="${H-mt-mb}" fill="transparent" data-k="${k}"/>`;
+  g+='</svg>'; const el=$('#cRamp'); el.innerHTML=g;
+  el.querySelectorAll('rect[data-k]').forEach(r=>{r.onmousemove=e=>{const k=+r.dataset.k; showTip(e,`<div class="tt">Monat ${k+1} nach Ramp-Up-Start</div>${tr('Leistung',nf.format(rampFactor(k)*100)+' %')}${tr('Schichtmodell',DPW_LAB[S.shifts[shiftIdx(k)].dpw]+', '+S.shifts[shiftIdx(k)].n+'-Schicht')}${tr(esc(S.variants.A.name),fmt(sA[k]))}${tr(esc(S.variants.B.name),fmt(sB[k]))}`);}; r.onmouseleave=hideTip;});
+}
+function renderPhaseEditors(){
+  const groups=[['neubau','Neubau (Gebäude)','--c-neubau'],['reinraum','Reinraum / Hygieneraum','--c-reinraum'],['anlage','Anlage','--c-anlage']];
+  let h='';
+  for(const [k,t,c] of groups){const arr=S.phases[k]; const tot=arr.reduce((a,b)=>a+(+b.d||0),0);
+    h+=`<div class="card" style="background:var(--surface-2)"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(${c});margin-right:6px"></i>${t} <span class="tag">Σ ${tot} Monate</span></h3><div class="scroll"><table class="phase-tbl"><thead><tr><th class="l">Vorgang</th><th>Monate</th>${k==='anlage'?'<th class="c">Raum nötig</th>':''}<th></th></tr></thead><tbody>`;
+    arr.forEach((p,j)=>{h+=`<tr><td class="l"><input type="text" data-k="phases.${k}.${j}.n" value="${esc(p.n)}"></td><td><input type="number" data-k="phases.${k}.${j}.d" min="0" max="60" step="1" value="${p.d}"></td>${k==='anlage'?`<td class="c"><input type="radio" name="roomph" data-room="${j}" ${p.room?'checked':''}></td>`:''}<td><button class="btn sm" data-del="${k}.${j}" title="Entfernen">✕</button></td></tr>`;});
+    h+=`</tbody></table></div><button class="btn sm" data-add="${k}" style="margin-top:8px">+ Vorgang</button></div>`;}
+  h+=`<div class="card" style="background:var(--surface-2)"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c-ramp);margin-right:6px"></i>Ramp-Up</h3><div class="form"><label>Dauer Ramp-Up-Phase</label><span><input type="number" data-k="phases.rampDur" min="1" max="36" step="1"> Monate</span></div><p class="hint">Gesamtvorlauf vor Ramp-Up-Start: ohne Neubau <b>${leadTime(false)}</b> Monate, mit Neubau <b>${leadTime(true)}</b> Monate.</p></div>`;
+  $('#phaseEditors').innerHTML=h;
+  bindInputs($('#phaseEditors'));
+}
+function leadTime(nb){const ps=S.phases; const sum=a=>a.reduce((x,y)=>x+(+y.d||0),0);
+  const ri=ps.anlage.findIndex(x=>x.room); const after=sum(ps.anlage.slice(ri<0?ps.anlage.length:ri)); const before=sum(ps.anlage.slice(0,ri<0?ps.anlage.length:ri));
+  return Math.max(before, sum(ps.reinraum)+(nb?sum(ps.neubau):0))+after;}
+
+/* =================== Render: Absatz =================== */
+let selYear=null;
+function renderAbsatz(){
+  const yrs=P.years;
+  // KPIs
+  const tot=P.plants.length, nA=P.plants.filter(p=>p.v==='A').length;
+  const last=yrs[yrs.length-1];
+  $('#absKpis').innerHTML=`<div class="kpi"><div class="v">${tot}</div><div class="t">Anlagen benötigt (${nA}× A, ${tot-nA}× B)</div></div>
+   <div class="kpi"><div class="v">${P.buildings.filter(b=>b.isNew).length}</div><div class="t">Neubauten</div></div>
+   <div class="kpi"><div class="v">${last?pct(last.d/Math.max(1,last.c)):'–'}</div><div class="t">Auslastung ${last?last.Y:''}</div></div>`;
+  // Alerts
+  const al=[];
+  if(P.deficit.length) al.push({lvl:'crit',t:`Negativer Saldo in ${P.deficit.map(y=>y.Y).join(', ')} – max. Anlagenanzahl (${S.logic.max}) reicht nicht oder Absatz vor Planungsbeginn. Max. Anlagen erhöhen oder Absatz prüfen.`});
+  al.push(...P.schedWarn);
+  if(!al.length) al.push({lvl:'ok',t:'Kein negativer Saldo, alle Vorlaufzeiten einhaltbar, maximal ein Ramp-Up-Start pro Jahr.'});
+  $('#alerts').innerHTML=al.map(a=>`<div class="alert ${a.lvl}"><b>${a.lvl==='crit'?'⛔ Kritisch':a.lvl==='warn'?'⚠ Hinweis':'✓ OK'}</b><span>${esc(a.t)}</span></div>`).join('');
+  // Jahrestabelle
+  let h='<thead><tr><th>Jahr</th>'+yrs.map(y=>`<th class="c"><button class="yearbtn ${selYear===y.Y?'on':''}" data-year="${y.Y}" title="Monatsübersicht">${y.Y}</button></th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr><td><b>Absatz (Stk)</b></td>'+yrs.map(y=>`<td><input type="number" data-dem="${y.Y}" min="0" step="1000" value="${+S.demand[y.Y]||0}"></td>`).join('')+'</tr>';
+  h+='<tr class="sum"><td>Kapazität (Stk)</td>'+yrs.map(y=>`<td>${fmt(y.c)}</td>`).join('')+'</tr>';
+  h+='<tr class="sum"><td>Saldo Jahr</td>'+yrs.map(y=>`<td class="${y.bal<-0.5?'neg':'pos'}">${fmt(y.bal)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Saldo kumuliert</td>'+yrs.map(y=>`<td class="${y.cum<-0.5?'neg':''}">${fmt(y.cum)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Min. Monatssaldo</td>'+yrs.map(y=>`<td class="${y.minMB<-0.5?(P.mode==='month'?'neg':''):''}">${fmt(y.minMB)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Auslastung</td>'+yrs.map(y=>`<td>${y.c>0?pct(y.d/y.c):'–'}</td>`).join('')+'</tr>';
+  h+='<tr><td>Anlagen aktiv</td>'+yrs.map(y=>`<td>${y.active}</td>`).join('')+'</tr>';
+  h+='<tr><td>Ramp-Up-Start</td>'+yrs.map(y=>`<td class="c">${y.starts.map(p=>`<span class="chip ramp" title="${esc(S.variants[p.v].name)}">A${P.plants.indexOf(p)+1}·${p.v} ${MON[mOf(p.start)]}</span>`).join(' ')}</td>`).join('')+'</tr>';
+  P.plants.forEach((p,idx)=>{h+=`<tr class="sub"><td>Anlage ${idx+1} (${p.v})</td>`+yrs.map(y=>{let c=0; for(let M=y.Y*12;M<y.Y*12+12;M++) c+=p.cap[M-P.LO]; return `<td>${c>0?fmt(c):'·'}</td>`;}).join('')+'</tr>';});
+  $('#tYears').innerHTML=h+'</tbody>';
+  bindInputs($('#tYears'));
+  $('#tYears').querySelectorAll('[data-year]').forEach(b=>b.onclick=()=>{selYear=selYear===+b.dataset.year?null:+b.dataset.year; renderAbsatz();});
+  renderMonth();
+  renderYearChart();
+  // Anlagen
+  h='<thead><tr><th>Anlage</th><th class="c">Variante</th><th class="c">Neubau davor</th><th class="l">Gebäude</th><th>Bestellung</th><th>Reinraumbau ab</th><th>Ramp-Up-Start</th><th>100 % ab</th><th>Kap. ab Jahr 3</th><th class="l">Status</th></tr></thead><tbody>';
+  for(let i=0;i<S.logic.max;i++){const cfg=S.plantCfg[i]; const p=P.plants.find(x=>x.i===i); const v=variantOf(i);
+    h+=`<tr><td><b>Anlage ${i+1}</b></td><td class="c"><select data-cfg="${i}.variant"><option value="auto" ${cfg.variant==='auto'?'selected':''}>Auto (${v})</option><option value="A" ${cfg.variant==='A'?'selected':''}>A</option><option value="B" ${cfg.variant==='B'?'selected':''}>B</option></select></td>
+    <td class="c"><input type="checkbox" data-cfg="${i}.neubau" ${cfg.neubau?'checked':''} title="Vor dieser Anlage wird ein Neubau errichtet"></td>`;
+    if(p){const b=P.buildings[p.b];
+      h+=`<td class="l">${b.isNew&&b.first===P.plants.indexOf(p)?'<span class="chip nb">'+bName(b)+'</span>':bName(b)}</td><td>${p.an.length?fmtM(p.an[0].s):'–'}</td><td>${fmtM(p.rrS)}</td><td><b>${fmtM(p.R)}</b></td><td>${fmtM(p.R+24)}</td><td>${fmt(yearCapRef(p.v,2).cap)}</td>
+      <td class="l">${p.late>0?`<span class="neg">Vorlauf fehlt ${p.late} Mon.</span>`:'<span class="pos">im Plan</span>'}</td></tr>`;}
+    else h+=`<td class="l hint" colspan="7">nicht benötigt</td></tr>`;}
+  $('#tPlants').innerHTML=h+'</tbody>';
+  $('#tPlants').querySelectorAll('[data-cfg]').forEach(el=>el.onchange=()=>{const [i,k]=el.dataset.cfg.split('.'); S.plantCfg[+i][k]=el.type==='checkbox'?el.checked:el.value; changed();});
+}
+function renderMonth(){
+  const box=$('#monthBox'); if(selYear==null||!P.years.find(y=>y.Y===selYear)){box.innerHTML=''; return;}
+  const Y=selYear, Ms=[...Array(12)].map((_,m)=>Y*12+m);
+  const prevCum=(()=>{let s=0; for(let M=P.H0;M<Y*12;M++) s+=P.C[M-P.LO]-P.D[M-P.LO]; return s;})();
+  let cum=prevCum;
+  let h=`<h3>Monatsübersicht ${Y} <button class="btn sm" id="mClose">schließen</button></h3><div class="scroll"><table><thead><tr><th>Monat</th>${MON.map(m=>`<th>${m}</th>`).join('')}<th>Σ ${Y}</th></tr></thead><tbody>`;
+  for(const d of [5,6,7]) h+=`<tr class="sub"><td>Arbeitstage ${DPW_LAB[d]}</td>${Ms.map(M=>`<td>${nf1.format(workDays(M,d))}</td>`).join('')}<td>${nf1.format(Ms.reduce((a,M)=>a+workDays(M,d),0))}</td></tr>`;
+  const dd=Ms.map(M=>P.D[M-P.LO]), cc=Ms.map(M=>P.C[M-P.LO]);
+  h+=`<tr><td><b>Absatz</b></td>${dd.map(v=>`<td>${fmt(v)}</td>`).join('')}<td><b>${fmt(dd.reduce((a,b)=>a+b,0))}</b></td></tr>`;
+  h+=`<tr class="sum"><td>Kapazität</td>${cc.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(cc.reduce((a,b)=>a+b,0))}</td></tr>`;
+  h+=`<tr class="sum"><td>Saldo Monat</td>${cc.map((v,m)=>`<td class="${v-dd[m]<-0.5?'neg':'pos'}">${fmt(v-dd[m])}</td>`).join('')}<td>${fmt(cc.reduce((a,b)=>a+b,0)-dd.reduce((a,b)=>a+b,0))}</td></tr>`;
+  h+=`<tr><td>Saldo kumuliert</td>${cc.map((v,m)=>{cum+=v-dd[m]; return `<td class="${cum<-0.5?'neg':''}">${fmt(cum)}</td>`;}).join('')}<td></td></tr>`;
+  P.plants.forEach((p,idx)=>{ if(p.start>Y*12+11||p.full+24<Y*12&&false) return;
+    h+=`<tr class="sub"><td>Anlage ${idx+1} (${p.v})</td>${Ms.map(M=>{const k=M-p.start; const c=p.cap[M-P.LO];
+      if(k<0){const ph=phaseAt(p,M); return `<td class="hint">${ph?esc(ph.short):'·'}</td>`;}
+      const lab=k===0?'<span class="chip ramp">Start</span> ':''; return `<td title="Betriebsjahr ${shiftIdx(k)+1}, ${nf.format(rampFactor(k)*100)} % Leistung, ${DPW_LAB[S.shifts[shiftIdx(k)].dpw]} ${S.shifts[shiftIdx(k)].n}-Schicht">${lab}${fmt(c)}</td>`;}).join('')}<td>${fmt(Ms.reduce((a,M)=>a+p.cap[M-P.LO],0))}</td></tr>`;});
+  box.innerHTML=h+'</tbody></table></div>';
+  $('#mClose').onclick=()=>{selYear=null; renderAbsatz();};
+}
+function phaseAt(p,M){
+  const inR=(a)=>a.find(x=>M>=x.s&&M<x.e);
+  let x;
+  if(p.nb&&(x=inR(p.nb))) return {cat:'neubau',n:x.n,short:'Neubau'};
+  if((x=inR(p.an))&&x.room) return {cat:'anlage',n:x.n,short:'Einbau'};
+  if(x&&p.an.indexOf(x)>=p.an.findIndex(z=>z.room)&&p.an.findIndex(z=>z.room)>=0) return {cat:'anlage',n:x.n,short:x===p.an[p.an.length-1]?'Valid.':'Montage'};
+  if((x=inR(p.rr))) return {cat:'reinraum',n:x.n,short:'Reinraum'};
+  if(x) return {cat:'anlage',n:x.n,short:p.an.indexOf(x)===0?'Bestellg.':'Fertigung'};
+  return null;
+}
+function renderYearChart(){
+  const yrs=P.years, W=900,H=280,ml=64,mr=12,mt=16,mb=30, n=yrs.length;
+  const mx=niceMax(Math.max(1,...yrs.map(y=>Math.max(y.c,y.d)))*1.03);
+  const bw=(W-ml-mr)/n, x=i=>ml+bw*i, y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Absatz und Kapazität pro Jahr">`;
+  for(let i=0;i<=4;i++){const v=mx*i/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;}
+  yrs.forEach((r,i)=>{const bx=x(i)+bw*0.18, w=bw*0.64, top=y(r.c), bh=Math.max(0,y(0)-top);
+    const sel=selYear===r.Y;
+    g+=`<path d="M${bx},${y(0)} V${top+Math.min(4,bh)} q0,-4 4,-4 H${bx+w-4} q4,0 4,4 V${y(0)} Z" fill="var(--s-cap)" opacity="${selYear==null||sel?1:.45}"/>`;
+    g+=`<text class="ax" x="${x(i)+bw/2}" y="${H-10}" text-anchor="middle" ${sel?'style="font-weight:700;fill:var(--text)"':''}>${r.Y}</text>`;
+    if(r.bal<-0.5) g+=`<text x="${x(i)+bw/2}" y="${top-6}" text-anchor="middle" font-size="11" fill="var(--crit)" font-weight="700">!</text>`;
+    r.starts.forEach((p,k)=>{const cx=x(i)+bw*(mOf(p.start)+.5)/12; g+=`<rect x="${cx-5}" y="${y(0)-5}" width="10" height="10" transform="rotate(45 ${cx} ${y(0)})" fill="var(--c-ramp)" stroke="var(--surface)" stroke-width="2"/>`;});
+  });
+  g+=`<path d="${yrs.map((r,i)=>(i?'L':'M')+(x(i)+bw/2)+','+y(r.d)).join('')}" fill="none" stroke="var(--s-dem)" stroke-width="2"/>`;
+  yrs.forEach((r,i)=>g+=`<circle cx="${x(i)+bw/2}" cy="${y(r.d)}" r="4" fill="var(--s-dem)" stroke="var(--surface)" stroke-width="2"/>`);
+  yrs.forEach((r,i)=>g+=`<rect x="${x(i)}" y="${mt}" width="${bw}" height="${H-mt-mb}" fill="transparent" data-i="${i}" style="cursor:pointer"/>`);
+  g+='</svg>'; const el=$('#cYears'); el.innerHTML=g;
+  el.querySelectorAll('rect[data-i]').forEach(r=>{const d=yrs[+r.dataset.i];
+    r.onmousemove=e=>showTip(e,`<div class="tt">${d.Y}</div>${tr('Absatz',fmt(d.d))}${tr('Kapazität',fmt(d.c))}${tr('Saldo',fmt(d.bal))}${tr('Anlagen aktiv',d.active)}${d.starts.length?tr('Ramp-Up-Start',d.starts.map(p=>'Anlage '+(P.plants.indexOf(p)+1)+' ('+MON[mOf(p.start)]+')').join(', ')):''}<div class="hint">Klick: Monatsübersicht</div>`);
+    r.onmouseleave=hideTip; r.onclick=()=>{selYear=selYear===d.Y?null:d.Y; renderAbsatz(); $('#monthBox').scrollIntoView({behavior:'smooth',block:'nearest'});};});
+}
+
+/* =================== Render: Zeitplan (Gantt) =================== */
+const gOpen={};
+function ganttRows(){
+  const rows=[];
+  P.plants.forEach((p,idx)=>{
+    const key='p'+idx; const b=P.buildings[p.b];
+    rows.push({lvl:0,key,label:`Anlage ${idx+1} · ${S.variants[p.v].name} · ${bName(b)}`,bars:[{s:p.first,e:p.full,cat:'sum'}],ms:p.R,late:p.late>0});
+    if(gOpen[key]===false) return;
+    const grp=(k,lab,arr,cat)=>{if(!arr||!arr.length) return; const gk=key+k;
+      rows.push({lvl:1,key:gk,parent:key,label:lab,bars:[{s:arr[0].s,e:arr[arr.length-1].e,cat,crit:arr[0].s<ym2M(S.planStart)}]});
+      if(gOpen[gk]!==true) return;
+      arr.forEach(x=>rows.push({lvl:2,label:x.n,bars:[{s:x.s,e:x.e,cat,crit:x.s<ym2M(S.planStart),n:x.n}]}));};
+    if(p.nb) grp('nb',bName(b)+' (Gebäude)',p.nb,'neubau');
+    grp('rr','Reinraum / Hygieneraum',p.rr,'reinraum');
+    grp('an','Anlage',p.an,'anlage');
+    rows.push({lvl:1,label:`Ramp-Up (${S.phases.rampDur} Mon.)`,bars:[{s:p.R,e:p.R+S.phases.rampDur,cat:'ramp',n:'Ramp-Up'}],ms:p.R});
+  });
+  return rows;
+}
+function renderZeit(){
+  const plan=ym2M(S.planStart);
+  const crit=P.plants.filter(p=>p.late>0).length;
+  const firstOrder=P.plants.length?Math.min(...P.plants.map(p=>p.first)):plan;
+  $('#zKpis').innerHTML=`<div class="kpi"><div class="v">${P.plants.length}</div><div class="t">Anlagen im Plan</div></div>
+   <div class="kpi"><div class="v">${fmtM(firstOrder)}</div><div class="t">Erster Vorgang startet</div></div>
+   <div class="kpi"><div class="v">${P.plants.length?fmtM(P.plants[0].R):'–'}</div><div class="t">Erster Ramp-Up (SOP)</div></div>
+   <div class="kpi"><div class="v" style="color:${crit?'var(--crit)':'var(--good)'}">${crit}</div><div class="t">Anlagen mit Terminverzug</div></div>`;
+  $('#zAlerts').innerHTML=P.schedWarn.map(a=>`<div class="alert ${a.lvl}"><b>${a.lvl==='crit'?'⛔':'⚠'}</b><span>${esc(a.t)}</span></div>`).join('');
+  const mw=+$('#gZoom').value; const t0=Math.min(P.tMin,plan)-2, t1=P.tMax+3, n=t1-t0, W=n*mw;
+  const X=M=>(M-t0)*mw;
+  let h='<div class="g-row head"><div class="g-lab">Vorgang</div><div class="g-tl" style="width:'+W+'px"><div class="g-yr">';
+  for(let M=t0;M<t1;){const e=Math.min(t1,(yOf(M)+1)*12); h+=`<div style="width:${(e-M)*mw}px">${(e-M)*mw>30?yOf(M):''}</div>`; M=e;}
+  h+='</div>'; if(mw>=14){h+='<div class="g-mo">'; for(let M=t0;M<t1;M++) h+=`<div style="width:${mw}px">${MON[mOf(M)][0]}</div>`; h+='</div>';}
+  h+='</div></div>';
+  const rows=ganttRows();
+  rows.forEach((r,ri)=>{
+    const tog=r.key?`<button class="tog" data-tog="${r.key}">${(r.lvl===0?gOpen[r.key]!==false:gOpen[r.key]===true)?'▾':'▸'}</button>`:'<span style="width:16px;display:inline-block"></span>';
+    h+=`<div class="g-row lvl${r.lvl}"><div class="g-lab" title="${esc(r.label)}">${tog}${esc(r.label)}${r.late?' <span class="neg">⛔</span>':''}</div><div class="g-tl" style="width:${W}px">`;
+    for(let Y=yOf(t0)+1;Y*12<t1;Y++) h+=`<div class="g-yl" style="left:${X(Y*12)}px"></div>`;
+    r.bars.forEach(b=>{const col=b.cat==='sum'?'var(--text-2)':`var(--c-${b.cat})`;
+      h+=`<div class="g-bar ${b.cat==='sum'?'sum':''} ${b.crit?'crit':''}" style="left:${X(b.s)}px;width:${Math.max(2,(b.e-b.s)*mw-1)}px;background:${col}" data-tip="${esc(JSON.stringify({n:b.n||r.label,s:b.s,e:b.e,crit:b.crit}))}"></div>`;});
+    if(r.ms!=null) h+=`<div class="g-ms" style="left:${X(r.ms)}px" data-tip="${esc(JSON.stringify({n:'Ramp-Up-Start (SOP)',s:r.ms,e:r.ms}))}"></div>`;
+    h+='</div></div>';
+  });
+  const g=$('#gantt'); const sl=g.scrollLeft, st=g.scrollTop;
+  g.innerHTML=h+`<div class="g-vl" style="left:${280+X(plan)}px" title="Planungsstart"></div>`;
+  g.scrollLeft=sl; g.scrollTop=st;
+  g.querySelectorAll('[data-tip]').forEach(el=>{el.onmousemove=e=>{const d=JSON.parse(el.dataset.tip);
+    showTip(e,`<div class="tt">${esc(d.n)}</div>${d.e>d.s?tr('Start',fmtM(d.s))+tr('Ende',fmtM(d.e-1))+tr('Dauer',(d.e-d.s)+' Mon.'):tr('Termin',fmtM(d.s))}${d.crit?'<div class="neg">liegt vor Planungsstart</div>':''}`);}; el.onmouseleave=hideTip;});
+  g.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{const k=b.dataset.tog; const lvl0=!/(nb|rr|an)$/.test(k);
+    gOpen[k]=lvl0?(gOpen[k]===false):(gOpen[k]!==true); renderZeit();});
+  // Meilensteine
+  let m='<thead><tr><th>Anlage</th><th class="c">Var.</th><th class="l">Gebäude</th><th>Neubau Start</th><th>Neubau fertig</th><th>Bestellung</th><th>Reinraum Start</th><th>Reinraum fertig</th><th>Einbau</th><th>Validierung</th><th>Ramp-Up-Start</th><th>Ramp-Up Ende</th></tr></thead><tbody>';
+  P.plants.forEach((p,idx)=>{m+=`<tr><td><b>Anlage ${idx+1}</b></td><td class="c">${p.v}</td><td class="l">${bName(P.buildings[p.b])}</td><td>${p.nb?fmtM(p.nb[0].s):'–'}</td><td>${p.nb?fmtM(p.rrS-1):'–'}</td><td class="${p.an.length&&p.an[0].s<plan?'neg':''}">${p.an.length?fmtM(p.an[0].s):'–'}</td><td class="${p.rrS<plan?'neg':''}">${fmtM(p.rrS)}</td><td>${fmtM(p.rrE-1)}</td><td>${fmtM(p.einbau)}</td><td>${fmtM(p.val)}</td><td><b>${fmtM(p.R)}</b></td><td>${fmtM(p.R+S.phases.rampDur-1)}</td></tr>`;});
+  $('#tMs').innerHTML=m+'</tbody>';
+}
+$('#gZoom').onchange=renderZeit;
+$('#gExp').onclick=()=>{P.plants.forEach((p,i)=>{gOpen['p'+i]=true;['nb','rr','an'].forEach(k=>gOpen['p'+i+k]=true);}); renderZeit();};
+$('#gCol').onclick=()=>{P.plants.forEach((p,i)=>{gOpen['p'+i]=false;}); renderZeit();};
+
+/* =================== Simulation 3D =================== */
+const SIM={ready:false,dirty:true,t:0,playing:false,last:0,parts:[],objs:[]};
+function simRange(){return {a:P.tMin-1,b:P.tMax+1};}
+function initSim(){
+  if(SIM.ready) return true;
+  if(typeof THREE==='undefined'){ $('#scene').insertAdjacentHTML('beforeend','<div style="padding:60px 20px;text-align:center" class="hint">3D-Bibliothek konnte nicht geladen werden (Internetverbindung nötig).</div>'); return false; }
+  const el=$('#scene');
+  const r=new THREE.WebGLRenderer({antialias:true}); r.setPixelRatio(Math.min(2,devicePixelRatio)); r.shadowMap.enabled=true; el.prepend(r.domElement);
+  const scene=new THREE.Scene(); const cam=new THREE.PerspectiveCamera(45,1,0.5,2000);
+  const ctl=new THREE.OrbitControls(cam,r.domElement); ctl.enableDamping=true; ctl.maxPolarAngle=Math.PI*0.48;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,0.75));
+  const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(40,80,30); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+  const sc=sun.shadow.camera; sc.left=-150;sc.right=150;sc.top=150;sc.bottom=-150;sc.far=300; scene.add(sun);
+  Object.assign(SIM,{r,scene,cam,ctl,sun,ready:true,root:new THREE.Group()}); scene.add(SIM.root);
+  new ResizeObserver(()=>resizeSim()).observe(el); resizeSim();
+  requestAnimationFrame(loop);
+  return true;
+}
+function resizeSim(){const el=$('#scene'); const w=el.clientWidth,h=el.clientHeight; if(!w||!h) return; SIM.r.setSize(w,h,false); SIM.cam.aspect=w/h; SIM.cam.updateProjectionMatrix();}
+function mat(c,o){return new THREE.MeshStandardMaterial({color:c,roughness:.7,metalness:.1,transparent:o!=null,opacity:o==null?1:o});}
+function makeLabel(){const c=document.createElement('canvas'); c.width=512;c.height=140; const tex=new THREE.CanvasTexture(c);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); s.scale.set(9,2.46,1); s.renderOrder=10; s.userData={c,tex,key:''}; return s;}
+function setLabel(s,l1,l2,col){const key=l1+'|'+l2+'|'+col; if(s.userData.key===key) return; s.userData.key=key; const c=s.userData.c,x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height); x.fillStyle='rgba(20,20,22,.82)'; const r=22; x.beginPath(); x.moveTo(r,4); x.arcTo(508,4,508,136,r); x.arcTo(508,136,4,136,r); x.arcTo(4,136,4,4,r); x.arcTo(4,4,508,4,r); x.fill();
+  x.fillStyle=col; x.fillRect(22,30,16,16); x.fillStyle='#fff'; x.font='600 44px system-ui,sans-serif'; x.fillText(l1,52,54,440); x.fillStyle='#e0e0e0'; x.font='38px system-ui,sans-serif'; x.fillText(l2,24,112,470); s.userData.tex.needsUpdate=true;}
+function buildScene(){
+  const root=SIM.root; while(root.children.length){const o=root.children.pop(); o.traverse(n=>{if(n.geometry) n.geometry.dispose();});}
+  SIM.parts.forEach(p=>SIM.scene.remove(p.m)); SIM.parts=[];
+  const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  SIM.scene.background=new THREE.Color(dark?0x1b1e22:0xe9ecef);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(800,800),mat(dark?0x2a2e33:0xd5d9dd)); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; root.add(ground);
+  const SL=9; let ox=0; SIM.B=[]; SIM.objs=[];
+  P.buildings.forEach(b=>{
+    const n=Math.max(2,b.plants.length), cols=Math.ceil(n/2), rows=n>1?2:1;
+    const W=cols*SL+4, D=rows*SL+8, Hh=6;
+    const g=new THREE.Group(); g.position.set(ox+W/2,0,0); root.add(g);
+    const floor=new THREE.Mesh(new THREE.BoxGeometry(W,0.3,D),mat(dark?0x50555c:0xbfc4c9)); floor.position.y=0.15; floor.receiveShadow=true; g.add(floor);
+    const wallM=mat(b.isNew?0x9b8cf0:0x9aa3ad,0.28); const walls=new THREE.Group(); g.add(walls);
+    const wb=(w,d,x,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,Hh,d),wallM); m.position.set(x,Hh/2+0.3,z); walls.add(m);};
+    wb(W,0.3,0,-D/2); wb(0.3,D,-W/2,0); wb(0.3,D,W/2,0); wb(W*0.35,0.3,-W*0.325,D/2); wb(W*0.35,0.3,W*0.325,D/2);
+    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W,Hh,D)),new THREE.LineBasicMaterial({color:dark?0xaab2bb:0x5d6670})); edges.position.y=Hh/2+0.3; walls.add(edges);
+    // Kran für Neubau
+    let crane=null; if(b.isNew){crane=new THREE.Group(); const cm=mat(0xf2c230); const tw=new THREE.Mesh(new THREE.BoxGeometry(0.6,16,0.6),cm); tw.position.y=8; crane.add(tw); const jb=new THREE.Mesh(new THREE.BoxGeometry(14,0.5,0.5),cm); jb.position.set(5,16,0); crane.add(jb); crane.position.set(-W/2-3,0,-D/2-2); g.add(crane);}
+    const lab=makeLabel(); lab.position.set(0,Hh+3.5,-D/2); lab.scale.set(11,3,1); g.add(lab);
+    const B={b,g,walls,wallM,crane,lab,W,D,Hh}; SIM.B.push(B);
+    b.plants.forEach((pi,k)=>{const p=P.plants[pi]; const c=Math.floor(k/rows), rw=k%rows;
+      const px=-W/2+2+SL*c+SL/2, pz=(rows===1?0:(rw===0?-SL/2:SL/2))-1.5;
+      const o={p,idx:pi,B,g:new THREE.Group()}; o.g.position.set(px,0.3,pz); g.add(o.g);
+      // Reinraum
+      o.crM=mat(0x7fc8e8,0.22); o.cr=new THREE.Mesh(new THREE.BoxGeometry(SL-1.2,4,SL-1.6),o.crM); o.cr.position.y=2; o.g.add(o.cr);
+      o.crE=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(SL-1.2,4,SL-1.6)),new THREE.LineBasicMaterial({color:0x4aa8d8})); o.crE.position.y=2; o.g.add(o.crE);
+      // Anlage
+      o.mM=mat(0x57c17b); o.m=new THREE.Group(); o.g.add(o.m);
+      const base=new THREE.Mesh(new THREE.BoxGeometry(5.4,0.4,3.2),mat(0x6b737c)); base.position.y=0.2; o.m.add(base);
+      const body=new THREE.Mesh(new THREE.BoxGeometry(p.v==='A'?2.4:3.4,1.8,2),o.mM); body.position.set(-0.8,1.3,0); body.castShadow=true; o.m.add(body);
+      const tk=(x)=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,2.6,18),mat(0xc9ced4)); t.position.set(x,1.7,-0.6); t.castShadow=true; o.m.add(t);};
+      tk(1.6); if(p.v==='B') tk(2.5);
+      o.light=new THREE.Mesh(new THREE.SphereGeometry(0.25,12,12),new THREE.MeshBasicMaterial({color:0x57c17b})); o.light.position.set(-0.8,2.5,0); o.m.add(o.light);
+      const conv=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.25,D/2-pz+4),mat(0x40464d)); conv.position.set(1.2,0.6,(D/2-pz+4)/2); o.m.add(conv);
+      o.conv={x:px+1.2,z0:pz+1.6,z1:D/2+6};
+      o.lab=makeLabel(); o.lab.position.set(0,6.2,0); o.g.add(o.lab);
+      SIM.objs.push(o);});
+    ox+=W+10;
+  });
+  // Versand-Zone
+  const totalW=ox-10; const ship=new THREE.Mesh(new THREE.BoxGeometry(Math.max(10,totalW),0.1,4),mat(dark?0x3b4048:0xc8ccd0)); ship.position.set(totalW/2,0.05,SIM.B.length?Math.max(...SIM.B.map(b=>b.D))/2+7:8); root.add(ship);
+  const cx=totalW/2; SIM.ctl.target.set(cx,0,2); const dist=Math.max(45,totalW*0.75+25);
+  SIM.cam.position.set(cx-dist*0.15,dist*0.7,dist*0.95); SIM.ctl.update();
+  SIM.partGeo=new THREE.BoxGeometry(0.45,0.45,0.45); SIM.partMat=new THREE.MeshStandardMaterial({color:0xeb6834});
+  const R=simRange(); $('#simSlider').min=R.a; $('#simSlider').max=R.b;
+  if(SIM.t<R.a||SIM.t>R.b) SIM.t=R.a;
+  // Ereignisse
+  const ev=[]; P.plants.forEach((p,i)=>{ if(p.nb) ev.push([p.nb[0].s,`Neubau ${bName(P.buildings[p.b])} – Baubeginn`],[p.rrS,`${bName(P.buildings[p.b])} fertig`]);
+    if(p.an.length) ev.push([p.an[0].s,`Anlage ${i+1}: Bestellung`]); ev.push([p.rrS,`Anlage ${i+1}: Reinraumbau startet`],[p.einbau,`Anlage ${i+1}: Einbau`],[p.val,`Anlage ${i+1}: Prozessvalidierung`],[p.R,`Anlage ${i+1}: Ramp-Up-Start (SOP)`],[p.R+S.phases.rampDur,`Anlage ${i+1}: Ramp-Up abgeschlossen`]);});
+  SIM.ev=ev.sort((a,b)=>a[0]-b[0]);
+  SIM.dirty=false; renderSimChart();
+}
+const clamp01=v=>Math.max(0,Math.min(1,v));
+function plantState(p,t){
+  if(t<p.rrS) return {st:t>=(p.an[0]?p.an[0].s:Infinity)?'order':'none'};
+  if(t<p.rrE) return {st:'room',f:(t-p.rrS)/Math.max(.001,p.rrE-p.rrS)};
+  if(t<p.einbau) return {st:'roomdone'};
+  if(t<p.val) return {st:'install',f:(t-p.einbau)/Math.max(.001,p.val-p.einbau)};
+  if(t<p.R) return {st:'valid',f:(t-p.val)/Math.max(.001,p.R-p.val)};
+  if(t<p.R+S.phases.rampDur) return {st:'ramp',f:(t-p.R)/S.phases.rampDur};
+  return {st:'prod'};
+}
+function updateSim(dt){
+  const t=SIM.t, M=Math.floor(t), now=performance.now()/1000;
+  $('#simDate').textContent=fmtM(M); $('#simSlider').value=t;
+  SIM.B.forEach(B=>{const b=B.b;
+    if(!b.isNew){B.g.visible=true; B.walls.scale.y=1; B.walls.position.y=0; setLabel(B.lab,bName(b),`${b.plants.length} Anlagenplätze`,'#9aa3ad'); return;}
+    if(t<b.s){B.g.visible=true; B.walls.visible=false; B.g.children[0].material.opacity=1; if(B.crane) B.crane.visible=false; setLabel(B.lab,bName(b),'geplant · Baubeginn '+fmtM(b.s),'#9b8cf0'); B.g.children[0].visible=false; return;}
+    B.g.children[0].visible=true; B.walls.visible=true;
+    const f=clamp01((t-b.s)/Math.max(.001,b.e-b.s));
+    B.walls.scale.y=Math.max(0.02,f); B.walls.position.y=0; B.wallM.color.set(f<1?0x9b8cf0:0x9aa3ad);
+    if(B.crane){B.crane.visible=f<1; B.crane.rotation.y=now*0.3;}
+    setLabel(B.lab,bName(b),f<1?`im Bau · ${Math.round(f*100)} %`:`${b.plants.length} Anlagenplätze`,f<1?'#9b8cf0':'#9aa3ad');
+  });
+  let cap=0, active=0, inBuild=0;
+  SIM.objs.forEach(o=>{const p=o.p, s=plantState(p,t); const vis=!(s.st==='none'||s.st==='order');
+    o.cr.visible=o.crE.visible=vis; o.m.visible=['install','valid','ramp','prod'].includes(s.st);
+    const bReady=!o.B.b.isNew||t>=o.B.b.e; o.lab.visible=s.st!=='none'&&(bReady||s.st==='order')&&o.B.g.children[0].visible!==false||(s.st==='order');
+    if(s.st==='room'){o.cr.scale.y=Math.max(.02,s.f); o.cr.position.y=2*s.f; o.crE.scale.y=o.cr.scale.y; o.crE.position.y=o.cr.position.y;} else {o.cr.scale.y=o.crE.scale.y=1; o.cr.position.y=o.crE.position.y=2;}
+    const c=M>=P.LO&&M<P.H1?p.cap[M-P.LO]:0; const fullC=yearCapRef(p.v,2).cap/12;
+    let col=0x57c17b, l2='';
+    switch(s.st){
+      case 'order': l2='Anlage in Fertigung'; col=0x2a78d6; break;
+      case 'room': l2=`Reinraumbau ${Math.round(s.f*100)} %`; col=0x7fc8e8; inBuild++; break;
+      case 'roomdone': l2='Reinraum fertig'; col=0x7fc8e8; inBuild++; break;
+      case 'install': l2=`Einbau & Montage ${Math.round(s.f*100)} %`; col=0xf08a3c; o.m.scale.set(1,Math.max(.1,s.f),1); inBuild++; break;
+      case 'valid': l2='Prozessvalidierung'; col=0xf2c230; o.m.scale.set(1,1,1); inBuild++; break;
+      case 'ramp': l2=`Ramp-Up ${Math.round(rampFactor(Math.floor(t-p.R))*100)} % · ${fmtK(c)}/Mon`; col=0x57c17b; o.m.scale.set(1,1,1); active++; break;
+      case 'prod': l2=`Produktion · ${fmtK(c)}/Mon`; col=0x3aa864; o.m.scale.set(1,1,1); active++; break;
+    }
+    o.mM.color.set(col); o.light.material.color.set(s.st==='valid'?(Math.sin(now*6)>0?0xf2c230:0x333333):col);
+    setLabel(o.lab,`Anlage ${o.idx+1} · ${p.v}`,l2,'#'+col.toString(16).padStart(6,'0'));
+    cap+=c;
+    // Produkte
+    if((s.st==='ramp'||s.st==='prod')&&SIM.playing){ o.acc=(o.acc||0)+dt*6*Math.min(1.5,c/Math.max(1,fullC)); while(o.acc>1){o.acc-=1; spawnPart(o);} }
+  });
+  // Partikel
+  for(let i=SIM.parts.length-1;i>=0;i--){const q=SIM.parts[i]; q.z+=dt*4; q.m.position.set(q.x,0.95,q.z); if(q.z>q.z1){SIM.scene.remove(q.m); SIM.parts.splice(i,1);}}
+  const d=M>=P.H0&&M<P.H1?P.D[M-P.LO]:0; let cumP=0,cumD=0; for(let k=P.H0;k<=Math.min(M,P.H1-1);k++){cumP+=Math.min(P.C[k-P.LO],P.D[k-P.LO]); cumD+=P.D[k-P.LO];}
+  $('#simSub').textContent=`${active} Anlage(n) produzieren · ${inBuild} im Aufbau`;
+  const bal=cap-d;
+  $('#simStats').innerHTML=tr('Anlagen produzierend',active)+tr('Anlagen im Aufbau',inBuild)+tr('Gebäude in Betrieb',SIM.B.filter(B=>!B.b.isNew||t>=B.b.e).length)+tr('Kapazität / Monat',fmt(cap))+tr('Absatz / Monat',fmt(d))+`<div class="r"><span>Saldo / Monat</span><span class="${bal<-0.5?'neg':'pos'}">${fmt(bal)}</span></div>`+tr('Geliefert kumuliert',fmtK(cumP))+tr('Lieferfähigkeit kum.',cumD>0?pct(cumP/cumD):'–');
+  const html=SIM.ev.map(e=>`<div class="${e[0]<=M?'past':'fut'}"><b>${fmtM(e[0])}</b> · ${esc(e[1])}</div>`).join('');
+  if(SIM.logKey!==M){SIM.logKey=M; const lg=$('#simLog'); lg.innerHTML=html; const lastPast=[...lg.querySelectorAll('.past')].pop(); if(lastPast) lg.scrollTop=lastPast.offsetTop-lg.offsetTop-60; updateSimCursor();}
+}
+function spawnPart(o){ if(SIM.parts.length>600) return; const m=new THREE.Mesh(SIM.partGeo,SIM.partMat); const wp=new THREE.Vector3(); o.g.getWorldPosition(wp);
+  const q={m,x:wp.x+1.2,z:wp.z+1.6+Math.random()*0.3,z1:o.B.D/2+8}; m.position.set(q.x,0.95,q.z); SIM.scene.add(m); SIM.parts.push(q);}
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!$('#p-sim').classList.contains('on')||!SIM.ready){SIM.last=ts; return;}
+  if(SIM.dirty) buildScene();
+  const dt=Math.min(0.1,(ts-(SIM.last||ts))/1000); SIM.last=ts;
+  if(SIM.playing){SIM.t+=dt*(+$('#simSpeed').value); const R=simRange(); if(SIM.t>=R.b){SIM.t=R.b; SIM.playing=false; $('#simPlay').textContent='▶ Abspielen';}}
+  updateSim(dt); SIM.ctl.update(); SIM.r.render(SIM.scene,SIM.cam);
+}
+function renderSimChart(){
+  const R=simRange(), a=Math.max(R.a,P.LO), b=Math.min(R.b,P.H1-1), n=b-a+1, W=600,H=170,ml=52,mr=8,mt=8,mb=24;
+  let mx=1; for(let M=a;M<=b;M++) mx=Math.max(mx,P.C[M-P.LO],P.D[M-P.LO]); mx=niceMax(mx*1.03);
+  const x=M=>ml+(W-ml-mr)*(M-a)/Math.max(1,n-1), y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" id="simSvg">`;
+  for(let i=0;i<=3;i++){const v=mx*i/3; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;}
+  for(let Y=yOf(a)+1;Y*12<=b;Y++) if((Y-yOf(a))%Math.max(1,Math.ceil(n/12/8))===0) g+=`<text class="ax" x="${x(Y*12)}" y="${H-6}" text-anchor="middle">${Y}</text>`;
+  let pc='',pd=''; for(let M=a;M<=b;M++){pc+=(M===a?'M':'L')+x(M).toFixed(1)+','+y(P.C[M-P.LO]).toFixed(1); pd+=(M===a?'M':'L')+x(M).toFixed(1)+','+y(P.D[M-P.LO]).toFixed(1);}
+  g+=`<path d="${pc}L${x(b)},${y(0)}L${x(a)},${y(0)}Z" fill="var(--s-cap)" opacity=".18"/><path d="${pc}" fill="none" stroke="var(--s-cap)" stroke-width="2"/><path d="${pd}" fill="none" stroke="var(--s-dem)" stroke-width="2"/>`;
+  g+=`<line id="simCur" x1="0" x2="0" y1="${mt}" y2="${H-mb}" stroke="var(--text)" stroke-width="1.5"/><rect id="simHit" x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent" style="cursor:pointer"/></svg>`;
+  $('#cSim').innerHTML=g; SIM.cx={x,a,b,ml,W,mr};
+  const hit=$('#simHit'); const toM=e=>{const r=hit.getBoundingClientRect(); return Math.round(a+(e.clientX-r.left)/r.width*(n-1));};
+  hit.onmousemove=e=>{const M=Math.max(a,Math.min(b,toM(e))); showTip(e,`<div class="tt">${fmtM(M)}</div>${tr('Kapazität',fmt(P.C[M-P.LO]))}${tr('Absatz',fmt(P.D[M-P.LO]))}<div class="hint">Klick: zu diesem Monat springen</div>`);};
+  hit.onmouseleave=hideTip; hit.onclick=e=>{SIM.t=Math.max(a,Math.min(b,toM(e)));};
+}
+function updateSimCursor(){const c=$('#simCur'); if(!c||!SIM.cx) return; const M=Math.max(SIM.cx.a,Math.min(SIM.cx.b,Math.floor(SIM.t))); const X=SIM.cx.x(M); c.setAttribute('x1',X); c.setAttribute('x2',X);}
+$('#simPlay').onclick=()=>{const R=simRange(); if(SIM.t>=R.b) SIM.t=R.a; SIM.playing=!SIM.playing; $('#simPlay').textContent=SIM.playing?'❚❚ Pause':'▶ Abspielen';};
+$('#simRestart').onclick=()=>{SIM.t=simRange().a; SIM.parts.forEach(p=>SIM.scene.remove(p.m)); SIM.parts=[];};
+$('#simSlider').oninput=e=>{SIM.t=+e.target.value;};
+
+/* =================== Bindings =================== */
+function getPath(o,p){return p.split('.').reduce((a,k)=>a==null?a:a[k],o);}
+function setPath(o,p,v){const ks=p.split('.'); let a=o; for(let i=0;i<ks.length-1;i++) a=a[ks[i]]; a[ks[ks.length-1]]=v;}
+function bindInputs(root){
+  root.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k; const v=getPath(S,k);
+    if(el.type==='checkbox') el.checked=!!v; else if(document.activeElement!==el) el.value=v;
+    el.onchange=()=>{let val=el.type==='checkbox'?el.checked:el.value;
+      if(el.type==='number'||el.dataset.num){val=parseFloat(val); if(!isFinite(val)) val=0; if(el.min!==''&&val<+el.min) val=+el.min; if(el.max!==''&&val>+el.max) val=+el.max;}
+      setPath(S,k,val); if(k==='logic.max') ensureCfg(); changed();};});
+  root.querySelectorAll('[data-dem]').forEach(el=>el.onchange=()=>{S.demand[el.dataset.dem]=Math.max(0,parseFloat(el.value)||0); changed();});
+  root.querySelectorAll('[data-room]').forEach(el=>el.onchange=()=>{S.phases.anlage.forEach((p,j)=>p.room=j===+el.dataset.room); changed();});
+  root.querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{const [k,j]=el.dataset.del.split('.'); S.phases[k].splice(+j,1); changed();});
+  root.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{S.phases[el.dataset.add].push({n:'Neuer Vorgang',d:1}); changed();});
+}
+$('#planStart').onchange=e=>{if(e.target.value){S.planStart=e.target.value; changed();}};
+$('#refYear').onchange=e=>{S.refYear=Math.round(+e.target.value)||S.refYear; changed();};
+function renderAll(){computePlan(); renderGrund(); bindInputs(document); renderAbsatz(); renderZeit(); SIM.dirty=true;}
+let chT=null;
+function changed(){save(); clearTimeout(chT); chT=setTimeout(renderAll,30);}
+
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('section.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+b.dataset.p));
+  try{localStorage.setItem(LS+'.tab',b.dataset.p);}catch(e){}
+  if(b.dataset.p==='sim'){ if(initSim()){resizeSim(); SIM.dirty=true;} }
+  window.scrollTo({top:0});
+});
+$('#bReset').onclick=()=>{if(confirm('Alle Eingaben auf Beispielwerte zurücksetzen?')){S=clone(DEFAULT); ensureCfg(); selYear=null; changed();}};
+$('#bExport').onclick=()=>{const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'})); a.download='anlagenplanung.json'; a.click();};
+$('#bImport').onclick=()=>$('#fImport').click();
+$('#fImport').onchange=e=>{const f=e.target.files[0]; if(!f) return; f.text().then(t=>{try{S=Object.assign(clone(DEFAULT),JSON.parse(t)); ensureCfg(); changed();}catch(err){alert('Datei konnte nicht gelesen werden.');}});};
+$('#bCsv').onclick=()=>{const rows=[['Anlage','Variante','Gruppe','Vorgang','Start','Ende','Dauer (Monate)']];
+  const ym=M=>yOf(M)+'-'+String(mOf(M)+1).padStart(2,'0');
+  P.plants.forEach((p,i)=>{const add=(g,a)=>a&&a.forEach(x=>rows.push(['Anlage '+(i+1),p.v,g,x.n,ym(x.s),ym(x.e-1),x.e-x.s]));
+    add('Neubau',p.nb); add('Reinraum',p.rr); add('Anlage',p.an); rows.push(['Anlage '+(i+1),p.v,'Ramp-Up','Ramp-Up',ym(p.R),ym(p.R+S.phases.rampDur-1),S.phases.rampDur]);});
+  const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='zeitplan.csv'; a.click();};
+$('#bTheme').onclick=()=>{const r=document.documentElement; const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark'; try{localStorage.setItem(LS+'.theme',r.dataset.theme);}catch(e){} SIM.dirty=true;};
+try{const th=localStorage.getItem(LS+'.theme'); if(th) document.documentElement.dataset.theme=th;}catch(e){}
+
+renderAll();
+try{const tb=localStorage.getItem(LS+'.tab'); if(tb){const b=document.querySelector(`#tabs button[data-p="${tb}"]`); if(b) b.click();}}catch(e){}
+</script>
+</body>
+</html>
