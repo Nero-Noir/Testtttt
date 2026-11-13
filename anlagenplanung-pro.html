@@ -1,0 +1,1753 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anlagenplanung Pro</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f4f1; --surface:#ffffff; --surface-2:#f0efec; --surface-3:#e7e6e1;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#85847e; --border:#dedcd5;
+  --accent:#2a78d6; --accent-ink:#ffffff;
+  --good:#0f7b3f; --good-bg:#e3f3e8; --warn:#9a6700; --warn-bg:#fdf1d6; --crit:#c62f2f; --crit-bg:#fbe5e4;
+  --c-neubau:#6250d6; --c-reinraum:#1baf7a; --c-anlage:#2a78d6; --c-ramp:#eb6834;
+  --s-cap:#2a78d6; --s-dem:#eb6834;
+  --scene-bg:#e9ecef; --grid:#ecebe6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2d2d2a;
+    --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --border:#34342f;
+    --accent:#3987e5; --accent-ink:#ffffff;
+    --good:#4cc47e; --good-bg:#16301f; --warn:#e2b04a; --warn-bg:#352a10; --crit:#ef6b6b; --crit-bg:#3a1818;
+    --c-neubau:#9085e9; --c-reinraum:#199e70; --c-anlage:#3987e5; --c-ramp:#d95926;
+    --s-cap:#3987e5; --s-dem:#d95926;
+    --scene-bg:#1b1e22; --grid:#2a2a27;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2d2d2a;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --border:#34342f;
+  --accent:#3987e5; --accent-ink:#ffffff;
+  --good:#4cc47e; --good-bg:#16301f; --warn:#e2b04a; --warn-bg:#352a10; --crit:#ef6b6b; --crit-bg:#3a1818;
+  --c-neubau:#9085e9; --c-reinraum:#199e70; --c-anlage:#3987e5; --c-ramp:#d95926;
+  --s-cap:#3987e5; --s-dem:#d95926;
+  --scene-bg:#1b1e22; --grid:#2a2a27;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border)}
+.hwrap{max-width:1400px;margin:0 auto;padding:10px 16px 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.brand{font-weight:650;font-size:16px;margin-right:auto}
+.brand small{display:block;font-weight:400;color:var(--text-2);font-size:12px}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+nav.tabs{max-width:1400px;margin:0 auto;padding:0 16px;display:flex;gap:2px;overflow-x:auto}
+nav.tabs button{border:0;background:none;color:var(--text-2);padding:10px 14px;font:inherit;font-weight:550;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+nav.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+nav.tabs button .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--surface-3);font-size:11px;margin-right:6px}
+nav.tabs button.on .n{background:var(--accent);color:var(--accent-ink)}
+main{max-width:1400px;margin:0 auto;padding:16px}
+section.page{display:none}
+section.page.on{display:block}
+h2{font-size:18px;margin:4px 0 4px}
+h3{font-size:15px;margin:0 0 10px}
+p.lead{color:var(--text-2);margin:0 0 16px;max-width:900px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;min-width:0;margin-bottom:16px}
+.grid>.card{margin-bottom:0}
+.grid{margin-bottom:16px}
+.hint{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:7px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:3px 8px;font-size:12px}
+input,select{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 6px;min-width:0}
+input[type=number]{width:90px;text-align:right}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.form{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}
+.form label{color:var(--text-2)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+thead th{font-weight:600;color:var(--text-2);font-size:12px;background:var(--surface-2)}
+thead th:first-child{background:var(--surface-2)}
+td.l,th.l{text-align:left}
+td.c,th.c{text-align:center}
+tr.sum td{font-weight:650}
+tr.sub td{color:var(--text-2);font-size:12px}
+tr.sub td:first-child{padding-left:20px}
+.yearbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:650;cursor:pointer;padding:2px 4px;border-radius:4px;text-decoration:underline;text-underline-offset:3px}
+.yearbtn.on{background:var(--accent);color:var(--accent-ink);text-decoration:none}
+td input[type=number]{width:96px}
+.pos{color:var(--good)} .neg{color:var(--crit);font-weight:650}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600;background:var(--surface-3);color:var(--text)}
+.chip.ramp{background:color-mix(in srgb,var(--c-ramp) 22%,transparent)}
+.chip.nb{background:color-mix(in srgb,var(--c-neubau) 22%,transparent)}
+.alerts{display:flex;flex-direction:column;gap:6px;margin:0 0 16px}
+.alert{border-radius:8px;padding:8px 12px;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+.alert b{white-space:nowrap}
+.alert.crit{background:var(--crit-bg);color:var(--crit)}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.ok{background:var(--good-bg);color:var(--good)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.kpi .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.kpi .t{font-size:12px;color:var(--text-2)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-2);margin:6px 0 10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.legend i.line{height:2px;border-radius:0;vertical-align:3px;width:16px}
+/* Chart */
+.chart svg{display:block;width:100%;height:auto}
+.chart .ax{fill:var(--muted);font-size:11px}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);display:none;max-width:280px}
+#tip .tt{font-weight:650;margin-bottom:3px}
+#tip .r{display:flex;justify-content:space-between;gap:14px}
+#tip .r span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
+/* Gantt */
+.gantt{position:relative;border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:72vh;background:var(--surface)}
+.g-row{display:flex;min-height:26px;border-bottom:1px solid var(--grid)}
+.g-row.head{position:sticky;top:0;z-index:4;background:var(--surface-2);min-height:0}
+.g-lab{position:sticky;left:0;z-index:3;background:var(--surface);flex:0 0 280px;width:280px;padding:4px 8px;font-size:12px;border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.g-row.head .g-lab{background:var(--surface-2);font-weight:600;color:var(--text-2)}
+.g-row.lvl0 .g-lab{font-weight:650;background:var(--surface-2)}
+.g-row.lvl0{background:var(--surface-2)}
+.g-row.lvl1 .g-lab{padding-left:22px;font-weight:600}
+.g-row.lvl2 .g-lab{padding-left:38px;color:var(--text-2)}
+.g-tl{position:relative;flex:0 0 auto}
+.g-bar{position:absolute;top:6px;height:14px;border-radius:4px;cursor:default}
+.g-bar.sum{top:9px;height:8px;border-radius:2px;opacity:.55}
+.g-bar.crit{outline:2px solid var(--crit);outline-offset:1px}
+.g-bar.cp{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.38) 0 3px,transparent 3px 7px)}
+.g-ms{position:absolute;top:6px;width:12px;height:12px;transform:rotate(45deg);margin-left:-6px;background:var(--text);border:2px solid var(--surface)}
+.g-yr{display:flex}
+.g-yr div{border-left:1px solid var(--border);font-size:11px;padding:2px 4px;color:var(--text-2);font-weight:600;overflow:hidden}
+.g-mo{display:flex}
+.g-mo div{border-left:1px solid var(--grid);font-size:9px;text-align:center;color:var(--muted);overflow:hidden}
+.g-vl{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--crit);z-index:2;pointer-events:none}
+.g-yl{position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--grid);pointer-events:none}
+.tog{border:0;background:none;color:var(--text-2);cursor:pointer;font:inherit;width:16px;padding:0}
+/* Sim */
+.simwrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+@media (max-width:900px){.simwrap{grid-template-columns:1fr}}
+#scene{position:relative;height:min(68vh,620px);min-height:360px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--scene-bg)}
+#scene canvas{display:block;width:100%;height:100%}
+#scene .ovl{position:absolute;left:12px;top:10px;background:color-mix(in srgb,var(--surface) 85%,transparent);border-radius:8px;padding:6px 10px;pointer-events:none}
+#scene .ovl .d{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.simctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.simctl input[type=range]{flex:1 1 200px}
+.evlog{max-height:220px;overflow:auto;font-size:12px}
+.evlog div{padding:3px 0;border-bottom:1px solid var(--grid)}
+.evlog div.past{color:var(--text)} .evlog div.fut{color:var(--muted)}
+.stat-list .r{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--grid)}
+.stat-list .r span:last-child{font-weight:650;font-variant-numeric:tabular-nums}
+.scene3d{position:relative;height:min(68vh,620px);min-height:360px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--scene-bg)}
+.scene3d canvas{display:block;width:100%;height:100%}
+.scene3d .ovl{position:absolute;left:12px;top:10px;background:color-mix(in srgb,var(--surface) 85%,transparent);border-radius:8px;padding:6px 10px;pointer-events:none}
+.scene3d .ovl .d{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.bau-tl{position:relative;cursor:pointer;user-select:none}
+.bau-tl .row{display:flex;align-items:center;height:26px}
+.bau-tl .rl{flex:0 0 78px;font-size:12px;color:var(--text-2)}
+.bau-tl .rt{position:relative;flex:1;height:16px;background:var(--surface-2);border-radius:4px}
+.bau-tl .sg{position:absolute;top:0;bottom:0;border-radius:3px;border-right:2px solid var(--surface)}
+.bau-tl .cur{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);pointer-events:none}
+.bau-tl .ax{display:flex;justify-content:space-between;margin-left:78px;font-size:11px;color:var(--muted)}
+.binfo{border-left:4px solid var(--border);padding:4px 0 6px 10px;margin-bottom:10px}
+.binfo b{display:block}
+.binfo .pb{height:6px;background:var(--surface-3);border-radius:3px;margin-top:5px;overflow:hidden}
+.binfo .pb i{display:block;height:100%}
+.phase-tbl input[type=text]{width:100%;min-width:180px}
+.phase-tbl input[type=number]{width:64px}
+.tag{font-size:11px;color:var(--muted)}
+.brand{display:flex;align-items:center;gap:10px}
+#brandLogo{height:38px;max-width:140px;object-fit:contain}
+.dash-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+.kpi .v .neg,.kpi .v .pos{font-weight:inherit}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  header{position:static;border:0}
+  nav.tabs,.tools,.btn,.simctl,input[type=file]{display:none!important}
+  section.page{display:block!important;break-after:page}
+  #p-sim,#p-bau,#p-proj{display:none!important}
+  .card,.kpi,.alert{break-inside:avoid}
+  input,select{border:0!important;background:none!important;appearance:none;-webkit-appearance:none;padding:0!important}
+  .gantt{max-height:none;overflow:visible}
+  .scroll{overflow:visible}
+  #tip{display:none!important}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="brand"><img id="brandLogo" alt="Logo" style="display:none"><div><span id="brandTitle">Anlagenplanung Pro</span><small id="brandSub"></small></div></div>
+    <div class="tools">
+      <button class="btn sm primary" id="bPdf" title="Bericht drucken oder als PDF speichern">PDF-Bericht</button>
+      <button class="btn sm" id="bExport" title="Einstellungen als JSON speichern">Export JSON</button>
+      <button class="btn sm" id="bImport" title="Einstellungen aus JSON laden">Import JSON</button>
+      <button class="btn sm" id="bCsv" title="Zeitplan als CSV exportieren">Zeitplan CSV</button>
+      <button class="btn sm" id="bReset">Zurücksetzen</button>
+      <button class="btn sm" id="bTheme" title="Hell/Dunkel">◐</button>
+      <input type="file" id="fImport" accept="application/json" hidden>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-p="dash" class="on"><span class="n">0</span>Übersicht</button>
+    <button data-p="grund"><span class="n">1</span>Grundlagen</button>
+    <button data-p="absatz"><span class="n">2</span>Absatz &amp; Anlagen</button>
+    <button data-p="zeit"><span class="n">3</span>Zeitplan</button>
+    <button data-p="eco"><span class="n">4</span>Wirtschaftlichkeit</button>
+    <button data-p="res"><span class="n">5</span>Personal &amp; Ressourcen</button>
+    <button data-p="sim"><span class="n">6</span>Simulation 3D</button>
+    <button data-p="bau"><span class="n">7</span>Baustelle</button>
+    <button data-p="proj"><span class="n">8</span>Projekte &amp; Export</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ 0 ÜBERSICHT ============ -->
+<section class="page on" id="p-dash">
+  <div class="dash-head">
+    <div><h2 id="dTitle">Übersicht</h2><p class="lead" id="dLead" style="margin:0"></p></div>
+    <button class="btn primary" id="bPdf2">PDF-Bericht</button>
+  </div>
+  <div class="kpis" id="dKpis"></div>
+  <div class="alerts" id="dAlerts"></div>
+  <div class="grid">
+    <div class="card"><h3>Absatz vs. Kapazität</h3>
+      <div class="legend"><span><i style="background:var(--s-cap)"></i>Kapazität</span><span><i class="line" style="background:var(--s-dem)"></i>Absatz</span><span><i style="background:var(--c-ramp);transform:rotate(45deg);width:9px;height:9px"></i>Ramp-Up-Start</span></div>
+      <div class="chart" id="dChart"></div></div>
+    <div class="card"><h3>Cashflow</h3>
+      <div class="legend"><span><i style="background:var(--s-cap)"></i>Cashflow Jahr (positiv)</span><span><i style="background:var(--s-dem)"></i>Cashflow Jahr (negativ)</span><span><i class="line" style="background:var(--text-2)"></i>kumuliert</span></div>
+      <div class="chart" id="dCash"></div></div>
+  </div>
+  <div class="card"><h3>Anlagen &amp; Termine</h3><div class="scroll"><table id="dPlants"></table></div></div>
+  <div class="card"><h3>Szenario-Vergleich</h3><div class="scroll"><table id="dScen"></table></div></div>
+</section>
+
+<!-- ============ 1 GRUNDLAGEN ============ -->
+<section class="page" id="p-grund">
+  <h2>Grundlagen</h2>
+  <p class="lead">Anlagenvarianten, Ramp-Up und Schichtmodell je Betriebsjahr einer Anlage. Betriebsjahr 1 ist das Ramp-Up-Jahr (Leistung steigt linear von Start- auf End-Leistung), Jahr 2 und ab Jahr 3 laufen mit eigener Leistung und eigenem Schichtmodell. Alle Werte wirken sofort auf Absatzplanung, Zeitplan und Simulation.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Planungsrahmen</h3>
+      <div class="form">
+        <label for="planStart">Planungsstart (heute)</label><input type="month" id="planStart">
+        <label>Feiertage / Betriebsruhe pro Jahr</label><span><input type="number" data-k="holidays" min="0" max="60" step="1"> Tage</span>
+        <label>Referenzjahr Arbeitstage</label><span><input type="number" id="refYear" min="2000" max="2100" step="1"></span>
+      </div>
+      <p class="hint">Arbeitstage werden aus dem echten Kalender gezählt (Mo–Fr / Mo–Sa / Mo–So) minus Feiertage/Betriebsruhe anteilig pro Monat.</p>
+    </div>
+    <div class="card">
+      <h3>Anlagenvarianten</h3>
+      <div class="scroll"><table id="tVariants"></table></div>
+      <p class="hint">Kapazität = Ausbringung × OEE × Stunden/Schicht × Schichten × Arbeitstage × Leistungsfaktor.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Ramp-Up &amp; Schichtmodell je Betriebsjahr</h3>
+    <div class="scroll"><table id="tShifts"></table></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Arbeitstage-Kalender <span class="tag" id="refYearLab"></span></h3>
+      <div class="scroll"><table id="tCal"></table></div>
+    </div>
+    <div class="card">
+      <h3>Leistungsverlauf einer Anlage (36 Monate ab Ramp-Up-Start)</h3>
+      <div class="legend"><span><i style="background:var(--s-cap)"></i>Variante A</span><span><i style="background:var(--c-reinraum)"></i>Variante B</span></div>
+      <div class="chart" id="cRamp"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Vorlaufzeiten (Bausteine für den Zeitplan)</h3>
+    <p class="hint" style="margin-top:-6px">Der Zeitplan wird <b>rückwärts vom Ramp-Up-Start</b> terminiert. Die Anlage kann parallel zum Raum bestellt und gefertigt werden – ab dem markierten Vorgang („Raum nötig“) muss der Reinraum fertig sein. Ist für eine Anlage „Neubau“ angekreuzt, muss vor dem Reinraum das Gebäude stehen.</p>
+    <div class="grid" style="margin-bottom:0" id="phaseEditors"></div>
+  </div>
+</section>
+
+<!-- ============ 2 ABSATZ ============ -->
+<section class="page" id="p-absatz">
+  <h2>Absatz &amp; Anlagenbedarf</h2>
+  <p class="lead">Absatz pro Jahr eingeben – die Anlagenlogik berechnet, wann welche Anlage ihren Ramp-Up starten muss, damit kein negativer Saldo entsteht. Klick auf ein Jahr öffnet die Monatsübersicht.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Anlagenlogik</h3>
+      <div class="form">
+        <label>Erste Anlage(n) Variante</label>
+        <span><select data-k="logic.first"><option value="A">A</option><option value="B">B</option></select> &nbsp;Anzahl <input type="number" data-k="logic.firstCount" min="0" max="20" step="1" style="width:60px"></span>
+        <label>Danach nur Variante</label>
+        <span><select data-k="logic.next"><option value="A">A</option><option value="B">B</option></select></span>
+        <label>Max. Anzahl Anlagen</label><span><input type="number" data-k="logic.max" min="1" max="30" step="1" style="width:60px"></span>
+        <label>Saldo-Prüfung</label>
+        <span><select data-k="logic.mode">
+          <option value="year">Jahressaldo ≥ 0</option>
+          <option value="month">Monatssaldo ≥ 0 (streng)</option>
+          <option value="cum">Kumulierter Saldo ≥ 0 (mit Lager)</option>
+        </select></span>
+        <label>Ein Ramp-Up pro Jahr</label><span><input type="checkbox" data-k="logic.avoidSame"> <span class="hint">vermeidet 2 Anlagenstarts im selben Jahr</span></span>
+        <label>Vorlaufzeiten erzwingen</label><span><input type="checkbox" data-k="logic.hardLead"> <span class="hint">kein Ramp-Up vor dem frühestmöglichen Termin (Lücke wird sichtbar)</span></span>
+        <label>Plätze Bestandsgebäude</label><span><input type="number" data-k="layout.capBestand" min="0" max="30" step="1" style="width:60px"> <span class="hint">danach automatisch Neubau</span></span>
+        <label>Plätze je Neubau</label><span><input type="number" data-k="layout.capNeubau" min="1" max="30" step="1" style="width:60px"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Planungshorizont &amp; Szenario</h3>
+      <div class="form">
+        <label>Absatz-Szenario</label><span><select id="scenSel"><option value="pess">Pessimistisch</option><option value="real">Realistisch</option><option value="opt">Optimistisch</option></select></span>
+        <label>Aus „Realistisch“ ableiten</label><span><input type="number" id="scenPct" value="-25" step="5" style="width:64px"> % <button class="btn sm" id="scenDerive">auf aktives Szenario</button></span>
+        <label>Startjahr</label><span><input type="number" data-k="startYear" min="2000" max="2100" step="1"></span>
+        <label>Anzahl Jahre</label><span><input type="number" data-k="years" min="1" max="30" step="1"></span>
+      </div>
+      <p class="hint">Anlagen dürfen auch vor dem Startjahr anlaufen, wenn das für einen ausgeglichenen Saldo nötig ist. Ob die Vorlaufzeiten dann noch reichen, zeigt die Warnung.</p>
+      <div class="kpis" id="absKpis" style="margin:10px 0 0"></div>
+    </div>
+  </div>
+
+  <div class="alerts" id="alerts"></div>
+  <div class="card"><h3>Szenario-Vergleich</h3><div class="scroll"><table id="tScen"></table></div></div>
+
+  <div class="card">
+    <h3>Jahresübersicht</h3>
+    <div class="scroll"><table id="tYears"></table></div>
+    <div id="monthBox" style="margin-top:16px"></div>
+  </div>
+
+  <div class="card">
+    <h3>Absatz vs. Kapazität</h3>
+    <div class="legend"><span><i style="background:var(--s-cap)"></i>Kapazität</span><span><i class="line" style="background:var(--s-dem)"></i>Absatz</span><span><i style="background:var(--c-ramp);transform:rotate(45deg);width:9px;height:9px"></i>Ramp-Up-Start</span></div>
+    <div class="chart" id="cYears"></div>
+  </div>
+
+  <div class="card">
+    <h3>Anlagen</h3>
+    <p class="hint" style="margin-top:-6px">Variante je Anlage übersteuern oder „Neubau“ ankreuzen: dann wird vor dem Reinraum dieser Anlage ein neues Gebäude gebaut. Alle folgenden Anlagen kommen in dieses Gebäude, bis der nächste Neubau angekreuzt ist.</p>
+    <div class="scroll"><table id="tPlants"></table></div>
+  </div>
+</section>
+
+<!-- ============ 3 ZEITPLAN ============ -->
+<section class="page" id="p-zeit">
+  <h2>Zeitplan</h2>
+  <p class="lead">Rückwärtsterminierung vom berechneten Ramp-Up-Start: Neubau (falls angekreuzt) → Reinraum / Hygieneraum → Anlage (Bestellung, Fertigung, Einbau, Montage, Validierung) → Ramp-Up. Rot umrandete Vorgänge liegen vor dem Planungsstart und sind so nicht mehr einhaltbar.</p>
+  <div class="kpis" id="zKpis"></div>
+  <div class="alerts" id="zAlerts"></div>
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+      <div class="legend" style="margin:0">
+        <span><i style="background:var(--c-neubau)"></i>Neubau</span>
+        <span><i style="background:var(--c-reinraum)"></i>Reinraum</span>
+        <span><i style="background:var(--c-anlage)"></i>Anlage</span>
+        <span><i style="background:var(--c-ramp)"></i>Ramp-Up</span>
+        <span><i style="background:var(--text);transform:rotate(45deg);width:9px;height:9px"></i>Ramp-Up-Start (SOP)</span>
+        <span><i class="line" style="background:var(--crit)"></i>Planungsstart</span>
+        <span><i style="background:repeating-linear-gradient(45deg,var(--text-2) 0 2px,transparent 2px 5px)"></i>Kritischer Pfad (schraffiert)</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" id="gExp">Alle aufklappen</button>
+        <button class="btn sm" id="gCol">Alle zuklappen</button>
+        <select id="gZoom"><option value="10">Zoom S</option><option value="16" selected>Zoom M</option><option value="26">Zoom L</option></select>
+      </div>
+    </div>
+    <div class="gantt" id="gantt" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h3>Meilensteine je Anlage</h3>
+    <div class="scroll"><table id="tMs"></table></div>
+  </div>
+</section>
+
+<!-- ============ 4 WIRTSCHAFTLICHKEIT ============ -->
+<section class="page" id="p-eco">
+  <h2>Wirtschaftlichkeit</h2>
+  <p class="lead">Investitionen nach Zahlungsplan (Anlage: Bestellung / Lieferung / Abnahme; Reinraum und Neubau gleichmäßig über die Bauzeit), Erlöse aus gelieferter Menge (min. aus Absatz und Kapazität) und Betriebskosten. Daraus Cashflow, Finanzierungsbedarf, Amortisation und Stückkosten.</p>
+  <div class="grid">
+    <div class="card"><h3>Investitionen</h3><div class="form">
+      <label>Anlage Variante A</label><span><input type="number" data-k="eco.inv.A" min="0" step="100000" style="width:130px"> €</span>
+      <label>Anlage Variante B</label><span><input type="number" data-k="eco.inv.B" min="0" step="100000" style="width:130px"> €</span>
+      <label>Reinraum je Anlage</label><span><input type="number" data-k="eco.rr" min="0" step="100000" style="width:130px"> €</span>
+      <label>Neubau je Gebäude</label><span><input type="number" data-k="eco.nb" min="0" step="500000" style="width:130px"> €</span>
+      <label>Zahlungsplan Anlage</label><span><input type="number" data-k="eco.pay.0" min="0" max="100" style="width:56px"> % Bestellung · <input type="number" data-k="eco.pay.1" min="0" max="100" style="width:56px"> % Lieferung · <input type="number" data-k="eco.pay.2" min="0" max="100" style="width:56px"> % Abnahme</span>
+    </div></div>
+    <div class="card"><h3>Erlöse &amp; Betriebskosten</h3><div class="form">
+      <label>Verkaufspreis</label><span><input type="number" data-k="eco.price" min="0" step="0.05"> € / Stk</span>
+      <label>Materialkosten</label><span><input type="number" data-k="eco.mat" min="0" step="0.05"> € / Stk</span>
+      <label>Personalkosten</label><span><input type="number" data-k="eco.wage" min="0" step="1000" style="width:110px"> € / MA / Jahr</span>
+      <label>Strompreis</label><span><input type="number" data-k="eco.kwh" min="0" step="0.01"> € / kWh</span>
+      <label>Wartung &amp; Instandhaltung</label><span><input type="number" data-k="eco.maint" min="0" max="30" step="0.5"> % vom Anlagen-Invest p. a.</span>
+      <label>Abschreibung</label><span><input type="number" data-k="eco.depY" min="1" max="40" style="width:60px"> J. Anlage+Reinraum · <input type="number" data-k="eco.depB" min="1" max="60" style="width:60px"> J. Gebäude</span>
+    </div></div>
+  </div>
+  <div class="kpis" id="eKpis"></div>
+  <div class="card"><h3>Cashflow pro Jahr</h3>
+    <div class="legend"><span><i style="background:var(--s-cap)"></i>Cashflow Jahr (positiv)</span><span><i style="background:var(--s-dem)"></i>Cashflow Jahr (negativ)</span><span><i class="line" style="background:var(--text-2)"></i>kumuliert</span><span><i class="line" style="background:var(--good)"></i>Amortisation</span></div>
+    <div class="chart" id="eChart"></div></div>
+  <div class="card"><h3>Jahresübersicht</h3><div class="scroll"><table id="tEco"></table></div>
+    <p class="hint">Personal wird ab „Einstellung vor SOP“ gerechnet (Seite Personal &amp; Ressourcen), Energie aus Anschlussleistung × Betriebsstunden × Leistungsfaktor. Steuern, Zinsen und Working Capital sind nicht enthalten.</p></div>
+</section>
+
+<!-- ============ 5 PERSONAL & RESSOURCEN ============ -->
+<section class="page" id="p-res">
+  <h2>Personal &amp; Ressourcen</h2>
+  <p class="lead">Personalbedarf aus Schichtmodell je Betriebsjahr, Bedienern pro Schicht und Springerfaktor – inklusive Vorlauf für Einstellung und Schulung. Dazu Reinraumfläche und Medienbedarf als Grundlage für die Auslegung der Gebäude.</p>
+  <div class="grid">
+    <div class="card"><h3>Personal</h3><div class="form">
+      <label>Bediener je Schicht – A</label><span><input type="number" data-k="res.ops.A" min="0" step="0.5" style="width:70px"></span>
+      <label>Bediener je Schicht – B</label><span><input type="number" data-k="res.ops.B" min="0" step="0.5" style="width:70px"></span>
+      <label>Indirekte MA je Anlage</label><span><input type="number" data-k="res.ind" min="0" step="0.5" style="width:70px"> <span class="hint">QS, Instandhaltung, Logistik</span></span>
+      <label>Springerfaktor</label><span><input type="number" data-k="res.spr" min="1" max="2" step="0.05" style="width:70px"> <span class="hint">Urlaub, Krankheit</span></span>
+      <label>Einstellung vor SOP</label><span><input type="number" data-k="res.hire" min="0" max="24" step="1" style="width:70px"> Monate</span>
+    </div></div>
+    <div class="card"><h3>Fläche &amp; Medien je Anlage</h3><div class="scroll"><table id="tResIn"></table></div></div>
+  </div>
+  <div class="kpis" id="rKpis"></div>
+  <div class="card"><h3>Personalbedarf pro Monat</h3><div class="legend"><span><i style="background:var(--s-cap)"></i>Mitarbeiter gesamt (direkt + indirekt)</span></div><div class="chart" id="rChart"></div></div>
+  <div class="card"><h3>Jahresübersicht</h3><div class="scroll"><table id="tRes"></table></div></div>
+  <div class="card"><h3>Auslegung je Gebäude</h3><p class="hint" style="margin-top:-6px">Summe der Anlagen im Gebäude plus <input type="number" id="bldRes" value="20" min="0" max="100" style="width:56px"> % Reserve.</p><div class="scroll"><table id="tBld"></table></div></div>
+</section>
+
+<!-- ============ 4 SIMULATION ============ -->
+<section class="page" id="p-sim">
+  <h2>Simulation</h2>
+  <p class="lead">Animierter Ablauf des Plans: Reinräume entstehen, Anlagen werden eingebaut, validiert und gehen in den Ramp-Up. Neubauten wachsen, sobald sie dran sind. Maus/Finger: drehen, zoomen, verschieben.</p>
+  <div class="simwrap">
+    <div>
+      <div id="scene"><div class="ovl"><div class="d" id="simDate">–</div><div class="hint" id="simSub"></div></div></div>
+      <div class="simctl">
+        <button class="btn primary" id="simPlay">▶ Abspielen</button>
+        <button class="btn" id="simRestart">⟲</button>
+        <label class="hint"><input type="checkbox" id="simOrbit"> Rundflug</label>
+        <span class="hint">Klick auf eine Anlage öffnet ihre Baustelle</span>
+        <select id="simSpeed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+        <input type="range" id="simSlider" min="0" max="100" step="0.01" value="0" aria-label="Zeit">
+      </div>
+      <div class="card">
+        <div class="legend" style="margin-top:0"><span><i style="background:var(--s-cap)"></i>Kapazität / Monat</span><span><i class="line" style="background:var(--s-dem)"></i>Absatz / Monat</span></div>
+        <div class="chart" id="cSim"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Status</h3>
+        <div class="stat-list" id="simStats"></div>
+      </div>
+      <div class="card">
+        <h3>Ereignisse</h3>
+        <div class="evlog" id="simLog"></div>
+      </div>
+      <div class="card">
+        <h3>Farben</h3>
+        <div class="legend" style="flex-direction:column;gap:6px;margin:0">
+          <span><i style="background:#7fc8e8"></i>Reinraum im Bau / fertig</span>
+          <span><i style="background:#f08a3c"></i>Anlage Einbau &amp; Montage</span>
+          <span><i style="background:#f2c230"></i>Prozessvalidierung</span>
+          <span><i style="background:#57c17b"></i>Ramp-Up / Produktion</span>
+          <span><i style="background:#9b8cf0"></i>Neubau im Bau</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============ 5 BAUSTELLE ============ -->
+<section class="page" id="p-bau">
+  <h2>Baustelle</h2>
+  <p class="lead">Detail-Animation für eine Anlage nach dem berechneten Zeitplan: Baustelleneinrichtung, Erdarbeiten, Rohbau und Hülle beim Neubau, dann Reinraum-Montage, Anlieferung per LKW und Stapler, Montage, Validierung und Ramp-Up. Gebäude in Schnittansicht (Front offen).</p>
+  <div class="simctl" style="margin-top:0">
+    <select id="bauSel" aria-label="Anlage wählen"></select>
+    <button class="btn primary" id="bauPlay">❚❚ Pause</button>
+    <button class="btn" id="bauRestart" title="Von vorne">⟲</button>
+    <select id="bauSpeed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+    <label class="hint"><input type="checkbox" id="bauFollow" checked> Kamera folgt</label>
+    <label class="hint"><input type="checkbox" id="bauCut" checked> Schnittansicht (Dach/Decke aus, wenn fertig)</label>
+  </div>
+  <div class="simwrap">
+    <div>
+      <div id="bauScene" class="scene3d"><div class="ovl"><div class="d" id="bauDate">–</div><div class="hint" id="bauSub"></div></div></div>
+      <div class="card" style="margin-top:12px">
+        <div class="bau-tl" id="bauTl"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><h3>Was passiert gerade?</h3><div id="bauInfo"></div></div>
+      <div class="card"><h3>Auf der Baustelle</h3><div class="stat-list" id="bauStats"></div></div>
+    </div>
+  </div>
+</section>
+<!-- ============ 8 PROJEKTE ============ -->
+<section class="page" id="p-proj">
+  <h2>Projekte &amp; Export</h2>
+  <p class="lead">Branding für Kundentermine, mehrere Planstände speichern und vergleichen, Absatz aus Excel übernehmen und alle Tabellen nach Excel exportieren.</p>
+  <div class="grid">
+    <div class="card"><h3>Branding</h3><div class="form">
+      <label>Firmenname</label><input type="text" data-k="brand.company">
+      <label>Projektname</label><input type="text" data-k="brand.project">
+      <label>Logo</label><span><input type="file" id="logoFile" accept="image/*"> <button class="btn sm" id="logoDel">entfernen</button></span>
+      <label>Akzentfarbe</label><span><input type="color" id="accentIn" style="width:56px;height:30px;padding:2px"> <button class="btn sm" id="accentReset">Standard</button></span>
+    </div><p class="hint">Logo und Name erscheinen im Kopf und im PDF-Bericht.</p></div>
+    <div class="card"><h3>Excel</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn primary" id="xlsExport">Alle Tabellen als Excel</button>
+        <button class="btn" id="xlsTpl">Absatz-Vorlage</button>
+        <button class="btn" id="xlsImport">Absatz importieren</button>
+        <input type="file" id="xlsIn" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+      <p class="hint">Import: Spalte A = Jahr, danach Spalten „Pessimistisch“, „Realistisch“, „Optimistisch“. Gibt es nur eine Wertespalte, wird sie ins aktive Szenario übernommen. CSV mit ; oder , geht auch.</p>
+      <div id="xlsMsg" class="hint"></div>
+    </div>
+  </div>
+  <div class="card"><h3>Gespeicherte Planstände</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"><input type="text" id="projName" placeholder="Name, z. B. Standort Nord" style="flex:1 1 220px"><button class="btn primary" id="projSave">Aktuellen Stand speichern</button></div>
+    <div class="scroll"><table id="tProj"></table></div>
+    <p class="hint">Gespeichert wird im Browser. Zum Weitergeben „Export JSON“ oben rechts nutzen.</p>
+  </div>
+</section>
+</main>
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/* =================== Helpers =================== */
+const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const yOf=M=>Math.floor(M/12), mOf=M=>((M%12)+12)%12;
+const fmtM=M=>MON[mOf(M)]+' '+yOf(M);
+const nf=new Intl.NumberFormat('de-DE',{maximumFractionDigits:0});
+const nf1=new Intl.NumberFormat('de-DE',{maximumFractionDigits:1,minimumFractionDigits:1});
+const fmt=v=>nf.format(Math.round(v)||0);
+const fmtK=v=>{const a=Math.abs(v); if(a>=1e6) return nf1.format(v/1e6)+' Mio'; if(a>=1e4) return nf.format(v/1e3)+' T'; return fmt(v);};
+const pct=v=>isFinite(v)?nf.format(v*100)+' %':'–';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const niceMax=v=>{if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v)));for(const m of [1,1.2,1.6,2,2.4,3,4,5,6,8,10]) if(m*e>=v) return m*e;return 10*e;};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const DPW_LAB={5:'Mo–Fr',6:'Mo–Sa',7:'Mo–So'};
+
+/* =================== Default-Daten =================== */
+const DEFAULT={
+  planStart:'2026-11', holidays:10, refYear:2029,
+  startYear:2029, years:13,
+  variants:{A:{name:'Variante A',rate:60,oee:75},B:{name:'Variante B',rate:110,oee:80}},
+  shifts:[{dpw:5,n:1,h:8},{dpw:5,n:2,h:8},{dpw:6,n:3,h:8}],
+  ramp:{start:30,end:90,y2:100,y3:100},
+  logic:{first:'A',firstCount:1,next:'B',max:10,mode:'year',avoidSame:true,hardLead:true},
+  demands:(()=>{const r={2029:40000,2030:150000,2031:350000,2032:600000,2033:900000,2034:1200000,2035:1600000,2036:2000000,2037:2400000,2038:2800000,2039:3100000,2040:3400000,2041:3600000};
+    const sc=f=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,Math.round(v*f/1000)*1000])); return {pess:sc(0.75),real:r,opt:sc(1.25)};})(),
+  scen:'real',
+  plantCfg:Array.from({length:10},()=>({variant:'auto',neubau:false})),
+  layout:{capBestand:3,capNeubau:4},
+  eco:{inv:{A:3500000,B:6000000},rr:1500000,nb:15000000,pay:[30,60,10],price:8,mat:1.8,wage:58000,kwh:0.22,maint:3,depY:10,depB:25},
+  res:{ops:{A:2,B:3},ind:1.5,spr:1.2,hire:3,area:{A:120,B:180},iso:{A:'ISO 7',B:'ISO 7'},kw:{A:120,B:220},air:{A:40,B:70},water:{A:150,B:300}},
+  brand:{company:'Musterfirma GmbH',project:'Werkserweiterung',logo:'',accent:''},
+  phases:{
+    neubau:[{n:'Planung & Baugenehmigung',d:6},{n:'Rohbau',d:6},{n:'Gebäudehülle & TGA',d:4},{n:'Abnahme & Übergabe',d:1}],
+    reinraum:[{n:'Konzept & GMP-Auslegung',d:2},{n:'Ausschreibung & Vergabe',d:1},{n:'Ausbau Reinraumhülle (Wand/Decke/Boden)',d:3},{n:'HLK, Reinraumtechnik & Medien',d:2},{n:'Qualifizierung & Partikel-Freimessung',d:1}],
+    anlage:[{n:'Spezifikation & Bestellung',d:2},{n:'Fertigung beim Lieferanten',d:9},{n:'FAT & Transport',d:1},{n:'Einbau / Einbringung',d:1,room:true},{n:'Montage & Inbetriebnahme',d:2},{n:'Prozessvalidierung (IQ/OQ/PQ)',d:3}],
+    rampDur:12
+  }
+};
+const LS='anlagenplanung.pro.v1';
+function merge(d,s){if(s==null||typeof s!=='object'||Array.isArray(s)||typeof d!=='object'||d==null||Array.isArray(d)) return s===undefined?d:s; const o={...d}; for(const k of Object.keys(s)) o[k]=merge(d[k],s[k]); return o;}
+function fromJSON(o){const st=merge(clone(DEFAULT),o); if(!st.demands[st.scen]) st.scen='real'; st.demand=st.demands[st.scen]; return st;}
+function load(){try{const s=localStorage.getItem(LS); if(!s) return null; return fromJSON(JSON.parse(s));}catch(e){return null;}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}}
+let S=load()||fromJSON({});
+function ensureCfg(){while(S.plantCfg.length<S.logic.max) S.plantCfg.push({variant:'auto',neubau:false});}
+ensureCfg();
+
+/* =================== Kapazitätsmodell =================== */
+const calCache=new Map();
+function calDays(M,dpw){const k=M*10+dpw; let v=calCache.get(k); if(v!==undefined) return v;
+  const y=yOf(M),m=mOf(M),n=new Date(y,m+1,0).getDate(); v=0;
+  for(let d=1;d<=n;d++){const w=new Date(y,m,d).getDay(); if(dpw===7||(dpw===6&&w!==0)||(dpw===5&&w!==0&&w!==6)) v++;}
+  calCache.set(k,v); return v;}
+const workDays=(M,dpw)=>Math.max(0,calDays(M,dpw)-S.holidays/12);
+const shiftIdx=k=>k<12?0:k<24?1:2;
+function rampFactor(k){const r=S.ramp; if(k<12) return (r.start+(r.end-r.start)*(k/11))/100; return (k<24?r.y2:r.y3)/100;}
+function plantCap(v,start,M){const k=M-start; if(k<0) return 0; const sh=S.shifts[shiftIdx(k)], V=S.variants[v];
+  return V.rate*(V.oee/100)*sh.h*sh.n*workDays(M,sh.dpw)*rampFactor(k);}
+function variantOf(i){const c=S.plantCfg[i]; if(c&&c.variant&&c.variant!=='auto') return c.variant; return i<S.logic.firstCount?S.logic.first:S.logic.next;}
+
+/* =================== Anlagenlogik / Planung =================== */
+function bldFlags(){const n=Math.max(S.logic.max,1), out=[]; let cnt=0, cap=0;
+  for(let i=0;i<n;i++){const c=S.plantCfg[i]||{}; let newB=false,isNew=false,auto=false;
+    if(i===0){newB=true; isNew=!!c.neubau||S.layout.capBestand<1; auto=isNew&&!c.neubau;}
+    else if(c.neubau||cnt>=cap){newB=true; isNew=true; auto=!c.neubau;}
+    if(newB){cnt=0; cap=isNew?Math.max(1,S.layout.capNeubau):S.layout.capBestand;}
+    cnt++; out.push({newB,isNew,auto});}
+  return out;}
+let P=null; // Planergebnis
+function computePlan(){
+  const H0=S.startYear*12, H1=(S.startYear+S.years)*12, LO=H0-48, N=H1-LO, mode=S.logic.mode, avoid=!!S.logic.avoidSame;
+  const D=new Float64Array(N);
+  for(let M=H0;M<H1;M++) D[M-LO]=(+S.demand[yOf(M)]||0)/12;
+  // Perioden
+  const periods=[];
+  if(mode==='year'){for(let y=0;y<S.years;y++) periods.push({a:H0+y*12,b:H0+y*12+11});}
+  else {for(let M=H0;M<H1;M++) periods.push({a:mode==='cum'?H0:M,b:M});}
+  const balOf=(C,p)=>{let s=0; for(let M=p.a;M<=p.b;M++) s+=C[M-LO]-D[M-LO]; return s;};
+  const contrib=(v,s,p)=>{let c=0; for(let M=Math.max(p.a,s);M<=p.b;M++) c+=plantCap(v,s,M); return c;};
+  const BF=bldFlags(), plan0=ym2M(S.planStart);
+  const earliest=i=>S.logic.hardLead?plan0+leadTime(!!(BF[i]&&BF[i].newB&&BF[i].isNew)):-Infinity;
+  function greedy(caps){
+    const plants=[], C=new Float64Array(N); let conflict=null; const skip=new Set(); let i=0, guard=0;
+    while(i<S.logic.max && guard++<600){
+      let pi=-1, def=0;
+      for(let j=0;j<periods.length;j++){ if(skip.has(j)) continue; const b=balOf(C,periods[j]); if(b< -0.5){pi=j;def=-b;break;}}
+      if(pi<0) break;
+      const p=periods[pi], v=variantOf(i);
+      const last=plants.length?plants[plants.length-1].start:-Infinity;
+      const eMin=Math.max(LO,earliest(i));
+      const hi=Math.min(p.b, caps[i]!=null?caps[i]:Infinity);
+      const minS=Math.max(eMin, avoid&&plants.length?(yOf(last)+1)*12:(isFinite(last)?last:LO));
+      let best=null, sameYear=false;
+      for(let s=hi;s>=minS;s--){ if(contrib(v,s,p)>=def-0.5){best=s;break;} }
+      if(best==null&&avoid&&plants.length){
+        const lo2=Math.max(eMin,last);
+        for(let s=Math.min(hi,minS-1);s>=lo2;s--){ if(contrib(v,s,p)>=def-0.5){best=s;sameYear=true;break;} }
+      }
+      if(best==null){
+        let lo=minS, hi2=hi;
+        if(hi2<lo&&avoid&&plants.length){lo=Math.max(eMin,last); sameYear=true;}
+        let mx=0; const cs=[];
+        for(let s=hi2;s>=lo;s--){const c=contrib(v,s,p); cs.push([s,c]); if(c>mx) mx=c;}
+        if(mx<0.5){ skip.add(pi); continue; }
+        for(const [s,c] of cs){ if(c>=mx*0.999){best=s;break;} }
+      }
+      if(sameYear&&!conflict) conflict={i,year:yOf(last)};
+      const cap=new Float64Array(N); for(let M=best;M<H1;M++){const x=plantCap(v,best,M); cap[M-LO]=x; C[M-LO]+=x;}
+      plants.push({i,v,start:best,cap,sameYear}); i++;
+    }
+    return {plants,C,conflict};
+  }
+  const caps={}; let res=null;
+  for(let it=0;it<60;it++){
+    res=greedy(caps);
+    if(!res.conflict) break;
+    const i=res.conflict.i; if(i<1) break;
+    const nc=res.conflict.year*12-1; if(nc<Math.max(LO,earliest(i-1))) break;
+    const prevCap=caps[i-1]!=null?caps[i-1]:Infinity;
+    if(nc>=prevCap) break;
+    caps[i-1]=nc;
+  }
+  const {plants,C}=res;
+  // Jahresauswertung
+  const years=[]; let cumBal=0;
+  for(let y=0;y<S.years;y++){
+    const Y=S.startYear+y; let d=0,c=0,minMB=Infinity;
+    for(let M=Y*12;M<Y*12+12;M++){d+=D[M-LO];c+=C[M-LO]; cumBal+=C[M-LO]-D[M-LO]; minMB=Math.min(minMB,C[M-LO]-D[M-LO]);}
+    years.push({Y,d,c,bal:c-d,cum:cumBal,minMB,active:plants.filter(p=>p.start<=Y*12+11).length,starts:plants.filter(p=>yOf(p.start)===Y)});
+  }
+  const deficit=years.filter(y=>mode==='year'?y.bal<-0.5:mode==='month'?y.minMB<-0.5:y.cum<-0.5);
+  let gap=0; if(mode==='cum'){let mn=0; for(const p of periods) mn=Math.min(mn,balOf(C,p)); gap=-mn;} else for(const p of periods) gap+=Math.max(0,-balOf(C,p));
+  P={H0,H1,LO,D,C,plants,years,deficit,mode,BF,gap,earliest};
+  schedule();
+  return P;
+}
+
+/* =================== Terminierung (rückwärts) =================== */
+function schedule(){
+  const ps=S.phases, plan=ym2M(S.planStart);
+  const buildings=[]; const warn=[];
+  P.plants.forEach((pl,idx)=>{
+    const bf=P.BF[pl.i]||{newB:idx===0};
+    if(bf.newB||!buildings.length){buildings.push({id:buildings.length,isNew:!!bf.isNew,auto:!!bf.auto,plants:[],first:idx});}
+    const b=buildings[buildings.length-1]; pl.b=b.id; pl.slot=b.plants.length; b.plants.push(idx);
+    const R=pl.start; pl.R=R; pl.full=R+ps.rampDur;
+    // Anlage
+    let t=R; const an=[]; for(let j=ps.anlage.length-1;j>=0;j--){const d=+ps.anlage[j].d||0; an.unshift({n:ps.anlage[j].n,s:t-d,e:t,room:!!ps.anlage[j].room}); t-=d;}
+    pl.an=an;
+    const roomPh=an.find(x=>x.room); pl.roomNeed=roomPh?roomPh.s:R;
+    pl.einbau=roomPh?roomPh.s:(an.length?an[an.length-1].s:R);
+    pl.val=an.length?an[an.length-1].s:R;
+    t=pl.roomNeed; const rr=[]; for(let j=ps.reinraum.length-1;j>=0;j--){const d=+ps.reinraum[j].d||0; rr.unshift({n:ps.reinraum[j].n,s:t-d,e:t}); t-=d;}
+    pl.rr=rr; pl.rrS=rr.length?rr[0].s:pl.roomNeed; pl.rrE=pl.roomNeed;
+    pl.nb=null;
+    if(b.isNew && b.first===idx){t=pl.rrS; const nb=[]; for(let j=ps.neubau.length-1;j>=0;j--){const d=+ps.neubau[j].d||0; nb.unshift({n:ps.neubau[j].n,s:t-d,e:t}); t-=d;}
+      pl.nb=nb; b.s=nb.length?nb[0].s:pl.rrS; b.e=pl.rrS;}
+    if(b.id===0&&!b.isNew){b.s=-Infinity;b.e=-Infinity;}
+    pl.first=Math.min(pl.rrS, an.length?an[0].s:R, pl.nb&&pl.nb.length?pl.nb[0].s:Infinity);
+    pl.late=Math.max(0,plan-pl.first);
+    {const ln=a=>a?a.reduce((x,y)=>x+(y.e-y.s),0):0; const ri=pl.an.findIndex(x=>x.room); const mach=ln(ri<0?pl.an:pl.an.slice(0,ri)); const room=ln(pl.rr)+ln(pl.nb);
+     pl.crit=room>=mach?'room':'mach'; pl.slack=Math.abs(room-mach); pl.buffer=pl.first-plan; pl.roomIdx=ri;}
+    pl.name='Anlage '+(idx+1);
+    if(pl.late>0) warn.push({lvl:'crit',t:`${pl.name}: Vorlaufzeit nicht einhaltbar – Start hätte ${pl.late} Monat(e) vor dem Planungsstart (${fmtM(pl.first)}) liegen müssen.`});
+    if(b.isNew && b.first!==idx && pl.rrS<b.e) warn.push({lvl:'warn',t:`${pl.name}: Reinraumbau (${fmtM(pl.rrS)}) beginnt, bevor ${bName(b)} fertig ist (${fmtM(b.e)}).`});
+    if(pl.sameYear) warn.push({lvl:'warn',t:`${pl.name}: Ramp-Up im selben Jahr wie Vorgängeranlage (${yOf(pl.R)}) – ließ sich bei diesem Absatzsprung nicht vermeiden.`});
+  });
+  P.buildings=buildings; P.schedWarn=warn;
+  P.tMin=Math.min(...P.plants.map(p=>p.first),P.H0); P.tMax=Math.max(P.H1-1,...P.plants.map(p=>p.full));
+}
+const bName=b=>b.isNew?('Neubau '+(P.buildings.filter(x=>x.isNew&&x.id<=b.id).length)):'Bestandsgebäude';
+function ym2M(s){const [y,m]=String(s||'2026-01').split('-').map(Number); return y*12+(m-1);}
+
+/* =================== Tooltip =================== */
+const tip=$('#tip');
+function showTip(ev,html){tip.innerHTML=html; tip.style.display='block'; const w=tip.offsetWidth,h=tip.offsetHeight;
+  let x=ev.clientX+14,y=ev.clientY+14; if(x+w>innerWidth-8) x=ev.clientX-w-14; if(y+h>innerHeight-8) y=ev.clientY-h-14; tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';}
+const hideTip=()=>{tip.style.display='none';};
+const tr=(a,b)=>`<div class="r"><span>${a}</span><span>${b}</span></div>`;
+
+/* =================== Render: Grundlagen =================== */
+function yearCapRef(v,j){ // Kapazität eines vollen Betriebsjahres j im Referenzjahr
+  const sh=S.shifts[j],V=S.variants[v]; let days=0; for(let m=0;m<12;m++) days+=workDays(S.refYear*12+m,sh.dpw);
+  let f; if(j===0){f=(S.ramp.start+S.ramp.end)/2/100;} else f=(j===1?S.ramp.y2:S.ramp.y3)/100;
+  return {days,hours:days*sh.n*sh.h,cap:V.rate*V.oee/100*sh.h*sh.n*days*f};
+}
+function renderGrund(){
+  $('#planStart').value=S.planStart; $('#refYear').value=S.refYear; $('#refYearLab').textContent='Referenzjahr '+S.refYear;
+  let h='<thead><tr><th>Variante</th><th class="l">Bezeichnung</th><th>Ausbringung Stk/h</th><th>OEE %</th><th>Kap. Jahr 1</th><th>Kap. Jahr 2</th><th>Kap. ab Jahr 3</th></tr></thead><tbody>';
+  for(const v of ['A','B']){const V=S.variants[v];
+    h+=`<tr><td><b>${v}</b></td><td class="l"><input type="text" data-k="variants.${v}.name" value="${esc(V.name)}" style="width:130px"></td>
+    <td><input type="number" data-k="variants.${v}.rate" min="0" step="1" value="${V.rate}"></td>
+    <td><input type="number" data-k="variants.${v}.oee" min="1" max="100" step="1" value="${V.oee}" style="width:70px"></td>
+    ${[0,1,2].map(j=>`<td>${fmt(yearCapRef(v,j).cap)}</td>`).join('')}</tr>`;}
+  $('#tVariants').innerHTML=h+'</tbody>';
+  const lab=['Jahr 1 (Ramp-Up)','Jahr 2','ab Jahr 3'];
+  h='<thead><tr><th>Betriebsjahr</th>'+lab.map(l=>`<th class="c">${l}</th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr><td>Arbeitstage-Modell</td>'+S.shifts.map((s,j)=>`<td class="c"><select data-k="shifts.${j}.dpw" data-num="1">${[5,6,7].map(d=>`<option value="${d}" ${s.dpw==d?'selected':''}>${DPW_LAB[d]}</option>`).join('')}</select></td>`).join('')+'</tr>';
+  h+='<tr><td>Schichten pro Tag</td>'+S.shifts.map((s,j)=>`<td class="c"><select data-k="shifts.${j}.n" data-num="1">${[1,2,3].map(d=>`<option value="${d}" ${s.n==d?'selected':''}>${d}-Schicht</option>`).join('')}</select></td>`).join('')+'</tr>';
+  h+='<tr><td>Stunden pro Schicht</td>'+S.shifts.map((s,j)=>`<td class="c"><input type="number" data-k="shifts.${j}.h" min="1" max="12" step="0.5" value="${s.h}" style="width:70px"></td>`).join('')+'</tr>';
+  h+=`<tr><td>Leistung (% von Nennleistung)</td><td class="c"><input type="number" data-k="ramp.start" min="0" max="100" value="${S.ramp.start}" style="width:60px"> → <input type="number" data-k="ramp.end" min="0" max="100" value="${S.ramp.end}" style="width:60px"> <span class="hint">Monat 1→12</span></td>
+      <td class="c"><input type="number" data-k="ramp.y2" min="0" max="100" value="${S.ramp.y2}" style="width:70px"></td><td class="c"><input type="number" data-k="ramp.y3" min="0" max="100" value="${S.ramp.y3}" style="width:70px"></td></tr>`;
+  const refs=[0,1,2].map(j=>yearCapRef('A',j));
+  h+='<tr class="sum"><td>Arbeitstage / Jahr</td>'+refs.map(r=>`<td class="c">${nf1.format(r.days)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Betriebsstunden / Jahr</td>'+refs.map(r=>`<td class="c">${fmt(r.hours)} h</td>`).join('')+'</tr>';
+  h+='<tr><td>Ø Leistungsfaktor</td>'+[ (S.ramp.start+S.ramp.end)/2, S.ramp.y2, S.ramp.y3].map(f=>`<td class="c">${nf.format(f)} %</td>`).join('')+'</tr>';
+  for(const v of ['A','B']) h+=`<tr class="sum"><td>Kapazität ${esc(S.variants[v].name)} / Jahr</td>`+[0,1,2].map(j=>`<td class="c">${fmt(yearCapRef(v,j).cap)} Stk</td>`).join('')+'</tr>';
+  $('#tShifts').innerHTML=h+'</tbody>';
+  // Kalender
+  h='<thead><tr><th>Modell</th>'+MON.map(m=>`<th>${m}</th>`).join('')+'<th>Jahr</th></tr></thead><tbody>';
+  for(const d of [5,6,7]){let sum=0; h+=`<tr><td>${DPW_LAB[d]}</td>`; for(let m=0;m<12;m++){const w=workDays(S.refYear*12+m,d); sum+=w; h+=`<td>${nf1.format(w)}</td>`;} h+=`<td><b>${nf1.format(sum)}</b></td></tr>`;}
+  $('#tCal').innerHTML=h+'</tbody>';
+  renderRampChart();
+  renderPhaseEditors();
+}
+function renderRampChart(){
+  const W=560,H=200,ml=50,mr=10,mt=10,mb=28; const n=36, M0=S.refYear*12;
+  const sA=[],sB=[]; for(let k=0;k<n;k++){sA.push(plantCap('A',M0,M0+k)); sB.push(plantCap('B',M0,M0+k));}
+  const mx=niceMax(Math.max(1,...sA,...sB)*1.02); const x=k=>ml+(W-ml-mr)*(k+.5)/n, y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monatskapazität 36 Monate">`;
+  for(let i=0;i<=4;i++){const v=mx*i/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;}
+  [12,24].forEach(k=>{g+=`<line x1="${ml+(W-ml-mr)*k/n}" x2="${ml+(W-ml-mr)*k/n}" y1="${mt}" y2="${H-mb}" stroke="var(--border)" stroke-dasharray="3 3"/>`;});
+  ['Jahr 1','Jahr 2','Jahr 3'].forEach((t,i)=>g+=`<text class="ax" x="${ml+(W-ml-mr)*(i*12+6)/n}" y="${H-8}" text-anchor="middle">${t}</text>`);
+  const path=(s)=>s.map((v,k)=>(k?'L':'M')+x(k).toFixed(1)+','+y(v).toFixed(1)).join('');
+  g+=`<path d="${path(sA)}" fill="none" stroke="var(--s-cap)" stroke-width="2"/><path d="${path(sB)}" fill="none" stroke="var(--c-reinraum)" stroke-width="2"/>`;
+  for(let k=0;k<n;k++) g+=`<rect x="${x(k)-(W-ml-mr)/n/2}" y="${mt}" width="${(W-ml-mr)/n}" height="${H-mt-mb}" fill="transparent" data-k="${k}"/>`;
+  g+='</svg>'; const el=$('#cRamp'); el.innerHTML=g;
+  el.querySelectorAll('rect[data-k]').forEach(r=>{r.onmousemove=e=>{const k=+r.dataset.k; showTip(e,`<div class="tt">Monat ${k+1} nach Ramp-Up-Start</div>${tr('Leistung',nf.format(rampFactor(k)*100)+' %')}${tr('Schichtmodell',DPW_LAB[S.shifts[shiftIdx(k)].dpw]+', '+S.shifts[shiftIdx(k)].n+'-Schicht')}${tr(esc(S.variants.A.name),fmt(sA[k]))}${tr(esc(S.variants.B.name),fmt(sB[k]))}`);}; r.onmouseleave=hideTip;});
+}
+function renderPhaseEditors(){
+  const groups=[['neubau','Neubau (Gebäude)','--c-neubau'],['reinraum','Reinraum / Hygieneraum','--c-reinraum'],['anlage','Anlage','--c-anlage']];
+  let h='';
+  for(const [k,t,c] of groups){const arr=S.phases[k]; const tot=arr.reduce((a,b)=>a+(+b.d||0),0);
+    h+=`<div class="card" style="background:var(--surface-2)"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(${c});margin-right:6px"></i>${t} <span class="tag">Σ ${tot} Monate</span></h3><div class="scroll"><table class="phase-tbl"><thead><tr><th class="l">Vorgang</th><th>Monate</th>${k==='anlage'?'<th class="c">Raum nötig</th>':''}<th></th></tr></thead><tbody>`;
+    arr.forEach((p,j)=>{h+=`<tr><td class="l"><input type="text" data-k="phases.${k}.${j}.n" value="${esc(p.n)}"></td><td><input type="number" data-k="phases.${k}.${j}.d" min="0" max="60" step="1" value="${p.d}"></td>${k==='anlage'?`<td class="c"><input type="radio" name="roomph" data-room="${j}" ${p.room?'checked':''}></td>`:''}<td><button class="btn sm" data-del="${k}.${j}" title="Entfernen">✕</button></td></tr>`;});
+    h+=`</tbody></table></div><button class="btn sm" data-add="${k}" style="margin-top:8px">+ Vorgang</button></div>`;}
+  h+=`<div class="card" style="background:var(--surface-2)"><h3><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c-ramp);margin-right:6px"></i>Ramp-Up</h3><div class="form"><label>Dauer Ramp-Up-Phase</label><span><input type="number" data-k="phases.rampDur" min="1" max="36" step="1"> Monate</span></div><p class="hint">Gesamtvorlauf vor Ramp-Up-Start: ohne Neubau <b>${leadTime(false)}</b> Monate, mit Neubau <b>${leadTime(true)}</b> Monate.</p></div>`;
+  $('#phaseEditors').innerHTML=h;
+  bindInputs($('#phaseEditors'));
+}
+function leadTime(nb){const ps=S.phases; const sum=a=>a.reduce((x,y)=>x+(+y.d||0),0);
+  const ri=ps.anlage.findIndex(x=>x.room); const after=sum(ps.anlage.slice(ri<0?ps.anlage.length:ri)); const before=sum(ps.anlage.slice(0,ri<0?ps.anlage.length:ri));
+  return Math.max(before, sum(ps.reinraum)+(nb?sum(ps.neubau):0))+after;}
+
+/* =================== Render: Absatz =================== */
+let selYear=null;
+function renderAbsatz(){
+  const yrs=P.years;
+  // KPIs
+  const tot=P.plants.length, nA=P.plants.filter(p=>p.v==='A').length;
+  const last=yrs[yrs.length-1];
+  $('#absKpis').innerHTML=`<div class="kpi"><div class="v">${tot}</div><div class="t">Anlagen benötigt (${nA}× A, ${tot-nA}× B)</div></div>
+   <div class="kpi"><div class="v">${P.buildings.filter(b=>b.isNew).length}</div><div class="t">Neubauten</div></div>
+   <div class="kpi"><div class="v">${last?pct(last.d/Math.max(1,last.c)):'–'}</div><div class="t">Auslastung ${last?last.Y:''}</div></div>`;
+  // Alerts
+  const al=[];
+  if(P.deficit.length) al.push({lvl:'crit',t:`Negativer Saldo in ${P.deficit.map(y=>y.Y).join(', ')} – Lieferlücke ${fmt(P.gap)} Stk. Ursache: Vorlaufzeiten erlauben keinen früheren Ramp-Up${S.logic.hardLead?' (Vorlaufzeiten erzwungen)':''} oder max. Anlagenanzahl (${S.logic.max}) reicht nicht.`});
+  al.push(...P.schedWarn);
+  if(!al.length) al.push({lvl:'ok',t:'Kein negativer Saldo, alle Vorlaufzeiten einhaltbar, maximal ein Ramp-Up-Start pro Jahr.'});
+  $('#alerts').innerHTML=al.map(a=>`<div class="alert ${a.lvl}"><b>${a.lvl==='crit'?'⛔ Kritisch':a.lvl==='warn'?'⚠ Hinweis':'✓ OK'}</b><span>${esc(a.t)}</span></div>`).join('');
+  // Jahrestabelle
+  let h='<thead><tr><th>Jahr</th>'+yrs.map(y=>`<th class="c"><button class="yearbtn ${selYear===y.Y?'on':''}" data-year="${y.Y}" title="Monatsübersicht">${y.Y}</button></th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr><td><b>Absatz (Stk)</b></td>'+yrs.map(y=>`<td><input type="number" data-dem="${y.Y}" min="0" step="1000" value="${+S.demand[y.Y]||0}"></td>`).join('')+'</tr>';
+  h+='<tr class="sum"><td>Kapazität (Stk)</td>'+yrs.map(y=>`<td>${fmt(y.c)}</td>`).join('')+'</tr>';
+  h+='<tr class="sum"><td>Saldo Jahr</td>'+yrs.map(y=>`<td class="${y.bal<-0.5?'neg':'pos'}">${fmt(y.bal)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Saldo kumuliert</td>'+yrs.map(y=>`<td class="${y.cum<-0.5?'neg':''}">${fmt(y.cum)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Min. Monatssaldo</td>'+yrs.map(y=>`<td class="${y.minMB<-0.5?(P.mode==='month'?'neg':''):''}">${fmt(y.minMB)}</td>`).join('')+'</tr>';
+  h+='<tr><td>Auslastung</td>'+yrs.map(y=>`<td>${y.c>0?pct(y.d/y.c):'–'}</td>`).join('')+'</tr>';
+  h+='<tr><td>Anlagen aktiv</td>'+yrs.map(y=>`<td>${y.active}</td>`).join('')+'</tr>';
+  h+='<tr><td>Ramp-Up-Start</td>'+yrs.map(y=>`<td class="c">${y.starts.map(p=>`<span class="chip ramp" title="${esc(S.variants[p.v].name)}">A${P.plants.indexOf(p)+1}·${p.v} ${MON[mOf(p.start)]}</span>`).join(' ')}</td>`).join('')+'</tr>';
+  P.plants.forEach((p,idx)=>{h+=`<tr class="sub"><td>Anlage ${idx+1} (${p.v})</td>`+yrs.map(y=>{let c=0; for(let M=y.Y*12;M<y.Y*12+12;M++) c+=p.cap[M-P.LO]; return `<td>${c>0?fmt(c):'·'}</td>`;}).join('')+'</tr>';});
+  $('#tYears').innerHTML=h+'</tbody>';
+  bindInputs($('#tYears'));
+  $('#tYears').querySelectorAll('[data-year]').forEach(b=>b.onclick=()=>{selYear=selYear===+b.dataset.year?null:+b.dataset.year; renderAbsatz();});
+  renderMonth();
+  renderYearChart();
+  // Anlagen
+  h='<thead><tr><th>Anlage</th><th class="c">Variante</th><th class="c">Neubau davor</th><th class="l">Gebäude</th><th>Bestellung</th><th>Reinraumbau ab</th><th>Ramp-Up-Start</th><th>100 % ab</th><th>Kap. ab Jahr 3</th><th class="l">Status</th></tr></thead><tbody>';
+  for(let i=0;i<S.logic.max;i++){const cfg=S.plantCfg[i]; const p=P.plants.find(x=>x.i===i); const v=variantOf(i);
+    h+=`<tr><td><b>Anlage ${i+1}</b></td><td class="c"><select data-cfg="${i}.variant"><option value="auto" ${cfg.variant==='auto'?'selected':''}>Auto (${v})</option><option value="A" ${cfg.variant==='A'?'selected':''}>A</option><option value="B" ${cfg.variant==='B'?'selected':''}>B</option></select></td>
+    <td class="c"><input type="checkbox" data-cfg="${i}.neubau" ${cfg.neubau?'checked':''} title="Vor dieser Anlage wird ein Neubau errichtet">${P.BF[i]&&P.BF[i].auto?' <span class="chip nb" title="Gebäude voll – Neubau automatisch">auto</span>':''}</td>`;
+    if(p){const b=P.buildings[p.b];
+      h+=`<td class="l">${b.isNew&&b.first===P.plants.indexOf(p)?'<span class="chip nb">'+bName(b)+'</span>':bName(b)}</td><td>${p.an.length?fmtM(p.an[0].s):'–'}</td><td>${fmtM(p.rrS)}</td><td><b>${fmtM(p.R)}</b></td><td>${fmtM(p.R+24)}</td><td>${fmt(yearCapRef(p.v,2).cap)}</td>
+      <td class="l">${p.late>0?`<span class="neg">Vorlauf fehlt ${p.late} Mon.</span>`:'<span class="pos">im Plan</span>'}</td></tr>`;}
+    else h+=`<td class="l hint" colspan="7">nicht benötigt</td></tr>`;}
+  $('#tPlants').innerHTML=h+'</tbody>';
+  $('#tPlants').querySelectorAll('[data-cfg]').forEach(el=>el.onchange=()=>{const [i,k]=el.dataset.cfg.split('.'); S.plantCfg[+i][k]=el.type==='checkbox'?el.checked:el.value; changed();});
+}
+function renderMonth(){
+  const box=$('#monthBox'); if(selYear==null||!P.years.find(y=>y.Y===selYear)){box.innerHTML=''; return;}
+  const Y=selYear, Ms=[...Array(12)].map((_,m)=>Y*12+m);
+  const prevCum=(()=>{let s=0; for(let M=P.H0;M<Y*12;M++) s+=P.C[M-P.LO]-P.D[M-P.LO]; return s;})();
+  let cum=prevCum;
+  let h=`<h3>Monatsübersicht ${Y} <button class="btn sm" id="mClose">schließen</button></h3><div class="scroll"><table><thead><tr><th>Monat</th>${MON.map(m=>`<th>${m}</th>`).join('')}<th>Σ ${Y}</th></tr></thead><tbody>`;
+  for(const d of [5,6,7]) h+=`<tr class="sub"><td>Arbeitstage ${DPW_LAB[d]}</td>${Ms.map(M=>`<td>${nf1.format(workDays(M,d))}</td>`).join('')}<td>${nf1.format(Ms.reduce((a,M)=>a+workDays(M,d),0))}</td></tr>`;
+  const dd=Ms.map(M=>P.D[M-P.LO]), cc=Ms.map(M=>P.C[M-P.LO]);
+  h+=`<tr><td><b>Absatz</b></td>${dd.map(v=>`<td>${fmt(v)}</td>`).join('')}<td><b>${fmt(dd.reduce((a,b)=>a+b,0))}</b></td></tr>`;
+  h+=`<tr class="sum"><td>Kapazität</td>${cc.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(cc.reduce((a,b)=>a+b,0))}</td></tr>`;
+  h+=`<tr class="sum"><td>Saldo Monat</td>${cc.map((v,m)=>`<td class="${v-dd[m]<-0.5?'neg':'pos'}">${fmt(v-dd[m])}</td>`).join('')}<td>${fmt(cc.reduce((a,b)=>a+b,0)-dd.reduce((a,b)=>a+b,0))}</td></tr>`;
+  h+=`<tr><td>Saldo kumuliert</td>${cc.map((v,m)=>{cum+=v-dd[m]; return `<td class="${cum<-0.5?'neg':''}">${fmt(cum)}</td>`;}).join('')}<td></td></tr>`;
+  P.plants.forEach((p,idx)=>{ if(p.start>Y*12+11||p.full+24<Y*12&&false) return;
+    h+=`<tr class="sub"><td>Anlage ${idx+1} (${p.v})</td>${Ms.map(M=>{const k=M-p.start; const c=p.cap[M-P.LO];
+      if(k<0){const ph=phaseAt(p,M); return `<td class="hint">${ph?esc(ph.short):'·'}</td>`;}
+      const lab=k===0?'<span class="chip ramp">Start</span> ':''; return `<td title="Betriebsjahr ${shiftIdx(k)+1}, ${nf.format(rampFactor(k)*100)} % Leistung, ${DPW_LAB[S.shifts[shiftIdx(k)].dpw]} ${S.shifts[shiftIdx(k)].n}-Schicht">${lab}${fmt(c)}</td>`;}).join('')}<td>${fmt(Ms.reduce((a,M)=>a+p.cap[M-P.LO],0))}</td></tr>`;});
+  box.innerHTML=h+'</tbody></table></div>';
+  $('#mClose').onclick=()=>{selYear=null; renderAbsatz();};
+}
+function phaseAt(p,M){
+  const inR=(a)=>a.find(x=>M>=x.s&&M<x.e);
+  let x;
+  if(p.nb&&(x=inR(p.nb))) return {cat:'neubau',n:x.n,short:'Neubau'};
+  if((x=inR(p.an))&&x.room) return {cat:'anlage',n:x.n,short:'Einbau'};
+  if(x&&p.an.indexOf(x)>=p.an.findIndex(z=>z.room)&&p.an.findIndex(z=>z.room)>=0) return {cat:'anlage',n:x.n,short:x===p.an[p.an.length-1]?'Valid.':'Montage'};
+  if((x=inR(p.rr))) return {cat:'reinraum',n:x.n,short:'Reinraum'};
+  if(x) return {cat:'anlage',n:x.n,short:p.an.indexOf(x)===0?'Bestellg.':'Fertigung'};
+  return null;
+}
+function renderYearChart(target){
+  const yrs=P.years, W=900,H=280,ml=64,mr=12,mt=16,mb=30, n=yrs.length;
+  const mx=niceMax(Math.max(1,...yrs.map(y=>Math.max(y.c,y.d)))*1.03);
+  const bw=(W-ml-mr)/n, x=i=>ml+bw*i, y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Absatz und Kapazität pro Jahr">`;
+  for(let i=0;i<=4;i++){const v=mx*i/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;}
+  yrs.forEach((r,i)=>{const bx=x(i)+bw*0.18, w=bw*0.64, top=y(r.c), bh=Math.max(0,y(0)-top);
+    const sel=selYear===r.Y;
+    g+=`<path d="M${bx},${y(0)} V${top+Math.min(4,bh)} q0,-4 4,-4 H${bx+w-4} q4,0 4,4 V${y(0)} Z" fill="var(--s-cap)" opacity="${selYear==null||sel?1:.45}"/>`;
+    g+=`<text class="ax" x="${x(i)+bw/2}" y="${H-10}" text-anchor="middle" ${sel?'style="font-weight:700;fill:var(--text)"':''}>${r.Y}</text>`;
+    if(r.bal<-0.5) g+=`<text x="${x(i)+bw/2}" y="${top-6}" text-anchor="middle" font-size="11" fill="var(--crit)" font-weight="700">!</text>`;
+    r.starts.forEach((p,k)=>{const cx=x(i)+bw*(mOf(p.start)+.5)/12; g+=`<rect x="${cx-5}" y="${y(0)-5}" width="10" height="10" transform="rotate(45 ${cx} ${y(0)})" fill="var(--c-ramp)" stroke="var(--surface)" stroke-width="2"/>`;});
+  });
+  g+=`<path d="${yrs.map((r,i)=>(i?'L':'M')+(x(i)+bw/2)+','+y(r.d)).join('')}" fill="none" stroke="var(--s-dem)" stroke-width="2"/>`;
+  yrs.forEach((r,i)=>g+=`<circle cx="${x(i)+bw/2}" cy="${y(r.d)}" r="4" fill="var(--s-dem)" stroke="var(--surface)" stroke-width="2"/>`);
+  yrs.forEach((r,i)=>g+=`<rect x="${x(i)}" y="${mt}" width="${bw}" height="${H-mt-mb}" fill="transparent" data-i="${i}" style="cursor:pointer"/>`);
+  g+='</svg>'; const el=$(target||'#cYears'); if(!el) return; el.innerHTML=g;
+  el.querySelectorAll('rect[data-i]').forEach(r=>{const d=yrs[+r.dataset.i];
+    r.onmousemove=e=>showTip(e,`<div class="tt">${d.Y}</div>${tr('Absatz',fmt(d.d))}${tr('Kapazität',fmt(d.c))}${tr('Saldo',fmt(d.bal))}${tr('Anlagen aktiv',d.active)}${d.starts.length?tr('Ramp-Up-Start',d.starts.map(p=>'Anlage '+(P.plants.indexOf(p)+1)+' ('+MON[mOf(p.start)]+')').join(', ')):''}<div class="hint">Klick: Monatsübersicht</div>`);
+    r.onmouseleave=hideTip; r.onclick=()=>{selYear=selYear===d.Y?null:d.Y; renderAbsatz(); $('#monthBox').scrollIntoView({behavior:'smooth',block:'nearest'});};});
+}
+
+/* =================== Render: Zeitplan (Gantt) =================== */
+const gOpen={};
+function ganttRows(){
+  const rows=[];
+  P.plants.forEach((p,idx)=>{
+    const key='p'+idx; const b=P.buildings[p.b];
+    rows.push({lvl:0,key,label:`Anlage ${idx+1} · ${S.variants[p.v].name} · ${bName(b)}`,bars:[{s:p.first,e:p.full,cat:'sum'}],ms:p.R,late:p.late>0});
+    if(gOpen[key]===false) return;
+    const grp=(k,lab,arr,cat)=>{if(!arr||!arr.length) return; const gk=key+k;
+      const cpG=k==='an'?true:p.crit==='room';
+      rows.push({lvl:1,key:gk,parent:key,label:lab,bars:[{s:arr[0].s,e:arr[arr.length-1].e,cat,crit:arr[0].s<ym2M(S.planStart),cp:cpG,sl:k==='an'?0:(p.crit==='room'?0:p.slack)}]});
+      if(gOpen[gk]!==true) return;
+      arr.forEach((x,j)=>{const cp=k==='an'?(j>=p.roomIdx||p.crit==='mach'):p.crit==='room'; rows.push({lvl:2,label:x.n,bars:[{s:x.s,e:x.e,cat,crit:x.s<ym2M(S.planStart),n:x.n,cp,sl:cp?0:p.slack}]});});};
+    if(p.nb) grp('nb',bName(b)+' (Gebäude)',p.nb,'neubau');
+    grp('rr','Reinraum / Hygieneraum',p.rr,'reinraum');
+    grp('an','Anlage',p.an,'anlage');
+    rows.push({lvl:1,label:`Ramp-Up (${S.phases.rampDur} Mon.)`,bars:[{s:p.R,e:p.R+S.phases.rampDur,cat:'ramp',n:'Ramp-Up'}],ms:p.R});
+  });
+  return rows;
+}
+function renderZeit(){
+  const plan=ym2M(S.planStart);
+  const crit=P.plants.filter(p=>p.late>0).length;
+  const firstOrder=P.plants.length?Math.min(...P.plants.map(p=>p.first)):plan;
+  $('#zKpis').innerHTML=`<div class="kpi"><div class="v">${P.plants.length}</div><div class="t">Anlagen im Plan</div></div>
+   <div class="kpi"><div class="v">${fmtM(firstOrder)}</div><div class="t">Erster Vorgang startet</div></div>
+   <div class="kpi"><div class="v">${P.plants.length?fmtM(P.plants[0].R):'–'}</div><div class="t">Erster Ramp-Up (SOP)</div></div>
+   <div class="kpi"><div class="v" style="color:${crit?'var(--crit)':'var(--good)'}">${crit}</div><div class="t">Anlagen mit Terminverzug</div></div>`;
+  $('#zAlerts').innerHTML=P.schedWarn.map(a=>`<div class="alert ${a.lvl}"><b>${a.lvl==='crit'?'⛔':'⚠'}</b><span>${esc(a.t)}</span></div>`).join('');
+  const mw=+$('#gZoom').value; const t0=Math.min(P.tMin,plan)-2, t1=P.tMax+3, n=t1-t0, W=n*mw;
+  const X=M=>(M-t0)*mw;
+  let h='<div class="g-row head"><div class="g-lab">Vorgang</div><div class="g-tl" style="width:'+W+'px"><div class="g-yr">';
+  for(let M=t0;M<t1;){const e=Math.min(t1,(yOf(M)+1)*12); h+=`<div style="width:${(e-M)*mw}px">${(e-M)*mw>30?yOf(M):''}</div>`; M=e;}
+  h+='</div>'; if(mw>=14){h+='<div class="g-mo">'; for(let M=t0;M<t1;M++) h+=`<div style="width:${mw}px">${MON[mOf(M)][0]}</div>`; h+='</div>';}
+  h+='</div></div>';
+  const rows=ganttRows();
+  rows.forEach((r,ri)=>{
+    const tog=r.key?`<button class="tog" data-tog="${r.key}">${(r.lvl===0?gOpen[r.key]!==false:gOpen[r.key]===true)?'▾':'▸'}</button>`:'<span style="width:16px;display:inline-block"></span>';
+    h+=`<div class="g-row lvl${r.lvl}"><div class="g-lab" title="${esc(r.label)}">${tog}${esc(r.label)}${r.late?' <span class="neg">⛔</span>':''}</div><div class="g-tl" style="width:${W}px">`;
+    for(let Y=yOf(t0)+1;Y*12<t1;Y++) h+=`<div class="g-yl" style="left:${X(Y*12)}px"></div>`;
+    r.bars.forEach(b=>{const col=b.cat==='sum'?'var(--text-2)':`var(--c-${b.cat})`;
+      h+=`<div class="g-bar ${b.cat==='sum'?'sum':''} ${b.crit?'crit':''} ${b.cp?'cp':''}" style="left:${X(b.s)}px;width:${Math.max(2,(b.e-b.s)*mw-1)}px;background-color:${col}" data-tip="${esc(JSON.stringify({n:b.n||r.label,s:b.s,e:b.e,crit:b.crit,cp:b.cp,sl:b.sl}))}"></div>`;});
+    if(r.ms!=null) h+=`<div class="g-ms" style="left:${X(r.ms)}px" data-tip="${esc(JSON.stringify({n:'Ramp-Up-Start (SOP)',s:r.ms,e:r.ms}))}"></div>`;
+    h+='</div></div>';
+  });
+  const g=$('#gantt'); const sl=g.scrollLeft, st=g.scrollTop;
+  g.innerHTML=h+`<div class="g-vl" style="left:${280+X(plan)}px" title="Planungsstart"></div>`;
+  g.scrollLeft=sl; g.scrollTop=st;
+  g.querySelectorAll('[data-tip]').forEach(el=>{el.onmousemove=e=>{const d=JSON.parse(el.dataset.tip);
+    showTip(e,`<div class="tt">${esc(d.n)}</div>${d.e>d.s?tr('Start',fmtM(d.s))+tr('Ende',fmtM(d.e-1))+tr('Dauer',(d.e-d.s)+' Mon.'):tr('Termin',fmtM(d.s))}${d.cp!=null?tr('Kritischer Pfad',d.cp?'ja (kein Puffer)':'nein'):''}${d.sl?tr('Puffer',d.sl+' Mon.'):''}${d.crit?'<div class="neg">liegt vor Planungsstart</div>':''}`);}; el.onmouseleave=hideTip;});
+  g.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{const k=b.dataset.tog; const lvl0=!/(nb|rr|an)$/.test(k);
+    gOpen[k]=lvl0?(gOpen[k]===false):(gOpen[k]!==true); renderZeit();});
+  // Meilensteine
+  let m='<thead><tr><th>Anlage</th><th class="c">Var.</th><th class="l">Gebäude</th><th>Neubau Start</th><th>Neubau fertig</th><th>Bestellung</th><th>Reinraum Start</th><th>Reinraum fertig</th><th>Einbau</th><th>Validierung</th><th>Ramp-Up-Start</th><th>Ramp-Up Ende</th><th class="l">Kritische Kette</th><th>Puffer andere Kette</th><th>Puffer bis heute</th></tr></thead><tbody>';
+  P.plants.forEach((p,idx)=>{m+=`<tr><td><b>Anlage ${idx+1}</b></td><td class="c">${p.v}</td><td class="l">${bName(P.buildings[p.b])}</td><td>${p.nb?fmtM(p.nb[0].s):'–'}</td><td>${p.nb?fmtM(p.rrS-1):'–'}</td><td class="${p.an.length&&p.an[0].s<plan?'neg':''}">${p.an.length?fmtM(p.an[0].s):'–'}</td><td class="${p.rrS<plan?'neg':''}">${fmtM(p.rrS)}</td><td>${fmtM(p.rrE-1)}</td><td>${fmtM(p.einbau)}</td><td>${fmtM(p.val)}</td><td><b>${fmtM(p.R)}</b></td><td>${fmtM(p.R+S.phases.rampDur-1)}</td><td class="l">${p.crit==='room'?(p.nb?'Neubau + Reinraum':'Reinraum'):'Anlagenbeschaffung'}</td><td>${p.slack} Mon.</td><td class="${p.buffer<0?'neg':p.buffer<3?'':'pos'}">${p.buffer} Mon.</td></tr>`;});
+  $('#tMs').innerHTML=m+'</tbody>';
+}
+$('#gZoom').onchange=renderZeit;
+$('#gExp').onclick=()=>{P.plants.forEach((p,i)=>{gOpen['p'+i]=true;['nb','rr','an'].forEach(k=>gOpen['p'+i+k]=true);}); renderZeit();};
+$('#gCol').onclick=()=>{P.plants.forEach((p,i)=>{gOpen['p'+i]=false;}); renderZeit();};
+
+/* =================== Simulation 3D =================== */
+const SIM={ready:false,dirty:true,t:0,playing:false,last:0,parts:[],objs:[]};
+function simRange(){return {a:P.tMin-1,b:P.tMax+1};}
+function initSim(){
+  if(SIM.ready) return true;
+  if(typeof THREE==='undefined'){ $('#scene').insertAdjacentHTML('beforeend','<div style="padding:60px 20px;text-align:center" class="hint">3D-Bibliothek konnte nicht geladen werden (Internetverbindung nötig).</div>'); return false; }
+  const el=$('#scene');
+  const r=new THREE.WebGLRenderer({antialias:true}); r.setPixelRatio(Math.min(2,devicePixelRatio)); r.shadowMap.enabled=true; el.prepend(r.domElement);
+  const scene=new THREE.Scene(); const cam=new THREE.PerspectiveCamera(45,1,0.5,2000);
+  const ctl=new THREE.OrbitControls(cam,r.domElement); ctl.enableDamping=true; ctl.maxPolarAngle=Math.PI*0.48;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,0.75));
+  const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(40,80,30); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+  const sc=sun.shadow.camera; sc.left=-150;sc.right=150;sc.top=150;sc.bottom=-150;sc.far=300; scene.add(sun);
+  Object.assign(SIM,{r,scene,cam,ctl,sun,ready:true,root:new THREE.Group()}); scene.add(SIM.root);
+  new ResizeObserver(()=>resizeSim()).observe(el); resizeSim(); simPick(); ctl.autoRotate=$('#simOrbit').checked; ctl.autoRotateSpeed=0.7;
+  requestAnimationFrame(loop);
+  return true;
+}
+function resizeSim(){const el=$('#scene'); const w=el.clientWidth,h=el.clientHeight; if(!w||!h) return; SIM.r.setSize(w,h,false); SIM.cam.aspect=w/h; SIM.cam.updateProjectionMatrix();}
+function mat(c,o){return new THREE.MeshStandardMaterial({color:c,roughness:.7,metalness:.1,transparent:o!=null,opacity:o==null?1:o});}
+function makeLabel(){const c=document.createElement('canvas'); c.width=512;c.height=140; const tex=new THREE.CanvasTexture(c);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); s.scale.set(9,2.46,1); s.renderOrder=10; s.userData={c,tex,key:''}; return s;}
+function setLabel(s,l1,l2,col){const key=l1+'|'+l2+'|'+col; if(s.userData.key===key) return; s.userData.key=key; const c=s.userData.c,x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height); x.fillStyle='rgba(20,20,22,.82)'; const r=22; x.beginPath(); x.moveTo(r,4); x.arcTo(508,4,508,136,r); x.arcTo(508,136,4,136,r); x.arcTo(4,136,4,4,r); x.arcTo(4,4,508,4,r); x.fill();
+  x.fillStyle=col; x.fillRect(22,30,16,16); x.fillStyle='#fff'; x.font='600 44px system-ui,sans-serif'; x.fillText(l1,52,54,440); x.fillStyle='#e0e0e0'; x.font='38px system-ui,sans-serif'; x.fillText(l2,24,112,470); s.userData.tex.needsUpdate=true;}
+function buildScene(){
+  const root=SIM.root; while(root.children.length){const o=root.children.pop(); o.traverse(n=>{if(n.geometry) n.geometry.dispose();});}
+  SIM.parts.forEach(p=>SIM.scene.remove(p.m)); SIM.parts=[];
+  const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  SIM.scene.background=new THREE.Color(dark?0x1b1e22:0xe9ecef);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(800,800),mat(dark?0x2a2e33:0xd5d9dd)); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; root.add(ground);
+  const SL=9; let ox=0; SIM.B=[]; SIM.objs=[];
+  P.buildings.forEach(b=>{
+    const n=Math.max(2,b.plants.length), cols=Math.ceil(n/2), rows=n>1?2:1;
+    const W=cols*SL+4, D=rows*SL+8, Hh=6;
+    const g=new THREE.Group(); g.position.set(ox+W/2,0,0); root.add(g);
+    const floor=new THREE.Mesh(new THREE.BoxGeometry(W,0.3,D),mat(dark?0x50555c:0xbfc4c9)); floor.position.y=0.15; floor.receiveShadow=true; g.add(floor);
+    const wallM=mat(b.isNew?0x9b8cf0:0x9aa3ad,0.28); const walls=new THREE.Group(); g.add(walls);
+    const wb=(w,d,x,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,Hh,d),wallM); m.position.set(x,Hh/2+0.3,z); walls.add(m);};
+    wb(W,0.3,0,-D/2); wb(0.3,D,-W/2,0); wb(0.3,D,W/2,0); wb(W*0.35,0.3,-W*0.325,D/2); wb(W*0.35,0.3,W*0.325,D/2);
+    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W,Hh,D)),new THREE.LineBasicMaterial({color:dark?0xaab2bb:0x5d6670})); edges.position.y=Hh/2+0.3; walls.add(edges);
+    // Kran für Neubau
+    let crane=null; if(b.isNew){crane=new THREE.Group(); const cm=mat(0xf2c230); const tw=new THREE.Mesh(new THREE.BoxGeometry(0.6,16,0.6),cm); tw.position.y=8; crane.add(tw); const jb=new THREE.Mesh(new THREE.BoxGeometry(14,0.5,0.5),cm); jb.position.set(5,16,0); crane.add(jb); crane.position.set(-W/2-3,0,-D/2-2); g.add(crane);}
+    const lab=makeLabel(); lab.position.set(0,Hh+3.5,-D/2); lab.scale.set(11,3,1); g.add(lab);
+    const B={b,g,walls,wallM,crane,lab,W,D,Hh}; SIM.B.push(B);
+    b.plants.forEach((pi,k)=>{const p=P.plants[pi]; const c=Math.floor(k/rows), rw=k%rows;
+      const px=-W/2+2+SL*c+SL/2, pz=(rows===1?0:(rw===0?-SL/2:SL/2))-1.5;
+      const o={p,idx:pi,B,g:new THREE.Group()}; o.g.position.set(px,0.3,pz); g.add(o.g);
+      // Reinraum
+      o.crM=mat(0x7fc8e8,0.22); o.cr=new THREE.Mesh(new THREE.BoxGeometry(SL-1.2,4,SL-1.6),o.crM); o.cr.position.y=2; o.g.add(o.cr);
+      o.crE=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(SL-1.2,4,SL-1.6)),new THREE.LineBasicMaterial({color:0x4aa8d8})); o.crE.position.y=2; o.g.add(o.crE);
+      // Anlage
+      o.mM=mat(0x57c17b); o.m=new THREE.Group(); o.g.add(o.m);
+      const base=new THREE.Mesh(new THREE.BoxGeometry(5.4,0.4,3.2),mat(0x6b737c)); base.position.y=0.2; o.m.add(base);
+      const body=new THREE.Mesh(new THREE.BoxGeometry(p.v==='A'?2.4:3.4,1.8,2),o.mM); body.position.set(-0.8,1.3,0); body.castShadow=true; o.m.add(body);
+      const tk=(x)=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,2.6,18),mat(0xc9ced4)); t.position.set(x,1.7,-0.6); t.castShadow=true; o.m.add(t);};
+      tk(1.6); if(p.v==='B') tk(2.5);
+      o.light=new THREE.Mesh(new THREE.SphereGeometry(0.25,12,12),new THREE.MeshBasicMaterial({color:0x57c17b})); o.light.position.set(-0.8,2.5,0); o.m.add(o.light);
+      const conv=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.25,D/2-pz+4),mat(0x40464d)); conv.position.set(1.2,0.6,(D/2-pz+4)/2); o.m.add(conv);
+      o.conv={x:px+1.2,z0:pz+1.6,z1:D/2+6};
+      o.lab=makeLabel(); o.lab.position.set(0,6.2,0); o.g.add(o.lab);
+      SIM.objs.push(o);});
+    ox+=W+10;
+  });
+  // Versand-Zone
+  const totalW=ox-10; const ship=new THREE.Mesh(new THREE.BoxGeometry(Math.max(10,totalW),0.1,4),mat(dark?0x3b4048:0xc8ccd0)); ship.position.set(totalW/2,0.05,SIM.B.length?Math.max(...SIM.B.map(b=>b.D))/2+7:8); root.add(ship);
+  const cx=totalW/2; SIM.ctl.target.set(cx,0,2); const dist=Math.max(45,totalW*0.75+25);
+  SIM.cam.position.set(cx-dist*0.15,dist*0.7,dist*0.95); SIM.ctl.update();
+  SIM.partGeo=new THREE.BoxGeometry(0.45,0.45,0.45); SIM.partMat=new THREE.MeshStandardMaterial({color:0xeb6834});
+  const R=simRange(); $('#simSlider').min=R.a; $('#simSlider').max=R.b;
+  if(SIM.t<R.a||SIM.t>R.b) SIM.t=R.a;
+  // Ereignisse
+  const ev=[]; P.plants.forEach((p,i)=>{ if(p.nb) ev.push([p.nb[0].s,`Neubau ${bName(P.buildings[p.b])} – Baubeginn`],[p.rrS,`${bName(P.buildings[p.b])} fertig`]);
+    if(p.an.length) ev.push([p.an[0].s,`Anlage ${i+1}: Bestellung`]); ev.push([p.rrS,`Anlage ${i+1}: Reinraumbau startet`],[p.einbau,`Anlage ${i+1}: Einbau`],[p.val,`Anlage ${i+1}: Prozessvalidierung`],[p.R,`Anlage ${i+1}: Ramp-Up-Start (SOP)`],[p.R+S.phases.rampDur,`Anlage ${i+1}: Ramp-Up abgeschlossen`]);});
+  SIM.ev=ev.sort((a,b)=>a[0]-b[0]);
+  SIM.dirty=false; renderSimChart();
+}
+const clamp01=v=>Math.max(0,Math.min(1,v));
+function plantState(p,t){
+  if(t<p.rrS) return {st:t>=(p.an[0]?p.an[0].s:Infinity)?'order':'none'};
+  if(t<p.rrE) return {st:'room',f:(t-p.rrS)/Math.max(.001,p.rrE-p.rrS)};
+  if(t<p.einbau) return {st:'roomdone'};
+  if(t<p.val) return {st:'install',f:(t-p.einbau)/Math.max(.001,p.val-p.einbau)};
+  if(t<p.R) return {st:'valid',f:(t-p.val)/Math.max(.001,p.R-p.val)};
+  if(t<p.R+S.phases.rampDur) return {st:'ramp',f:(t-p.R)/S.phases.rampDur};
+  return {st:'prod'};
+}
+function updateSim(dt){
+  const t=SIM.t, M=Math.floor(t), now=performance.now()/1000;
+  $('#simDate').textContent=fmtM(M); $('#simSlider').value=t;
+  SIM.B.forEach(B=>{const b=B.b;
+    if(!b.isNew){B.g.visible=true; B.walls.scale.y=1; B.walls.position.y=0; setLabel(B.lab,bName(b),`${b.plants.length} Anlagenplätze`,'#9aa3ad'); return;}
+    if(t<b.s){B.g.visible=true; B.walls.visible=false; B.g.children[0].material.opacity=1; if(B.crane) B.crane.visible=false; setLabel(B.lab,bName(b),'geplant · Baubeginn '+fmtM(b.s),'#9b8cf0'); B.g.children[0].visible=false; return;}
+    B.g.children[0].visible=true; B.walls.visible=true;
+    const f=clamp01((t-b.s)/Math.max(.001,b.e-b.s));
+    B.walls.scale.y=Math.max(0.02,f); B.walls.position.y=0; B.wallM.color.set(f<1?0x9b8cf0:0x9aa3ad);
+    if(B.crane){B.crane.visible=f<1; B.crane.rotation.y=now*0.3;}
+    setLabel(B.lab,bName(b),f<1?`im Bau · ${Math.round(f*100)} %`:`${b.plants.length} Anlagenplätze`,f<1?'#9b8cf0':'#9aa3ad');
+  });
+  let cap=0, active=0, inBuild=0;
+  SIM.objs.forEach(o=>{const p=o.p, s=plantState(p,t); const vis=!(s.st==='none'||s.st==='order');
+    o.cr.visible=o.crE.visible=vis; o.m.visible=['install','valid','ramp','prod'].includes(s.st);
+    const bReady=!o.B.b.isNew||t>=o.B.b.e; o.lab.visible=s.st!=='none'&&(bReady||s.st==='order')&&o.B.g.children[0].visible!==false||(s.st==='order');
+    if(s.st==='room'){o.cr.scale.y=Math.max(.02,s.f); o.cr.position.y=2*s.f; o.crE.scale.y=o.cr.scale.y; o.crE.position.y=o.cr.position.y;} else {o.cr.scale.y=o.crE.scale.y=1; o.cr.position.y=o.crE.position.y=2;}
+    const c=M>=P.LO&&M<P.H1?p.cap[M-P.LO]:0; const fullC=yearCapRef(p.v,2).cap/12;
+    let col=0x57c17b, l2='';
+    switch(s.st){
+      case 'order': l2='Anlage in Fertigung'; col=0x2a78d6; break;
+      case 'room': l2=`Reinraumbau ${Math.round(s.f*100)} %`; col=0x7fc8e8; inBuild++; break;
+      case 'roomdone': l2='Reinraum fertig'; col=0x7fc8e8; inBuild++; break;
+      case 'install': l2=`Einbau & Montage ${Math.round(s.f*100)} %`; col=0xf08a3c; o.m.scale.set(1,Math.max(.1,s.f),1); inBuild++; break;
+      case 'valid': l2='Prozessvalidierung'; col=0xf2c230; o.m.scale.set(1,1,1); inBuild++; break;
+      case 'ramp': l2=`Ramp-Up ${Math.round(rampFactor(Math.floor(t-p.R))*100)} % · ${fmtK(c)}/Mon`; col=0x57c17b; o.m.scale.set(1,1,1); active++; break;
+      case 'prod': l2=`Produktion · ${fmtK(c)}/Mon`; col=0x3aa864; o.m.scale.set(1,1,1); active++; break;
+    }
+    o.mM.color.set(col); o.light.material.color.set(s.st==='valid'?(Math.sin(now*6)>0?0xf2c230:0x333333):col);
+    setLabel(o.lab,`Anlage ${o.idx+1} · ${p.v}`,l2,'#'+col.toString(16).padStart(6,'0'));
+    cap+=c;
+    // Produkte
+    if((s.st==='ramp'||s.st==='prod')&&SIM.playing){ o.acc=(o.acc||0)+dt*6*Math.min(1.5,c/Math.max(1,fullC)); while(o.acc>1){o.acc-=1; spawnPart(o);} }
+  });
+  // Partikel
+  for(let i=SIM.parts.length-1;i>=0;i--){const q=SIM.parts[i]; q.z+=dt*4; q.m.position.set(q.x,0.95,q.z); if(q.z>q.z1){SIM.scene.remove(q.m); SIM.parts.splice(i,1);}}
+  const d=M>=P.H0&&M<P.H1?P.D[M-P.LO]:0; let cumP=0,cumD=0; for(let k=P.H0;k<=Math.min(M,P.H1-1);k++){cumP+=Math.min(P.C[k-P.LO],P.D[k-P.LO]); cumD+=P.D[k-P.LO];}
+  $('#simSub').textContent=`${active} Anlage(n) produzieren · ${inBuild} im Aufbau`;
+  const bal=cap-d;
+  $('#simStats').innerHTML=tr('Anlagen produzierend',active)+tr('Anlagen im Aufbau',inBuild)+tr('Gebäude in Betrieb',SIM.B.filter(B=>!B.b.isNew||t>=B.b.e).length)+tr('Kapazität / Monat',fmt(cap))+tr('Absatz / Monat',fmt(d))+`<div class="r"><span>Saldo / Monat</span><span class="${bal<-0.5?'neg':'pos'}">${fmt(bal)}</span></div>`+tr('Geliefert kumuliert',fmtK(cumP))+tr('Lieferfähigkeit kum.',cumD>0?pct(cumP/cumD):'–');
+  const html=SIM.ev.map(e=>`<div class="${e[0]<=M?'past':'fut'}"><b>${fmtM(e[0])}</b> · ${esc(e[1])}</div>`).join('');
+  if(SIM.logKey!==M){SIM.logKey=M; const lg=$('#simLog'); lg.innerHTML=html; const lastPast=[...lg.querySelectorAll('.past')].pop(); if(lastPast) lg.scrollTop=lastPast.offsetTop-lg.offsetTop-60; updateSimCursor();}
+}
+function spawnPart(o){ if(SIM.parts.length>600) return; const m=new THREE.Mesh(SIM.partGeo,SIM.partMat); const wp=new THREE.Vector3(); o.g.getWorldPosition(wp);
+  const q={m,x:wp.x+1.2,z:wp.z+1.6+Math.random()*0.3,z1:o.B.D/2+8}; m.position.set(q.x,0.95,q.z); SIM.scene.add(m); SIM.parts.push(q);}
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!$('#p-sim').classList.contains('on')||!SIM.ready){SIM.last=ts; return;}
+  if(SIM.dirty) buildScene();
+  const dt=Math.min(0.1,(ts-(SIM.last||ts))/1000); SIM.last=ts;
+  if(SIM.playing){SIM.t+=dt*(+$('#simSpeed').value); const R=simRange(); if(SIM.t>=R.b){SIM.t=R.b; SIM.playing=false; $('#simPlay').textContent='▶ Abspielen';}}
+  updateSim(dt); SIM.ctl.update(); SIM.r.render(SIM.scene,SIM.cam);
+}
+function renderSimChart(){
+  const R=simRange(), a=Math.max(R.a,P.LO), b=Math.min(R.b,P.H1-1), n=b-a+1, W=600,H=170,ml=52,mr=8,mt=8,mb=24;
+  let mx=1; for(let M=a;M<=b;M++) mx=Math.max(mx,P.C[M-P.LO],P.D[M-P.LO]); mx=niceMax(mx*1.03);
+  const x=M=>ml+(W-ml-mr)*(M-a)/Math.max(1,n-1), y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" id="simSvg">`;
+  for(let i=0;i<=3;i++){const v=mx*i/3; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;}
+  for(let Y=yOf(a)+1;Y*12<=b;Y++) if((Y-yOf(a))%Math.max(1,Math.ceil(n/12/8))===0) g+=`<text class="ax" x="${x(Y*12)}" y="${H-6}" text-anchor="middle">${Y}</text>`;
+  let pc='',pd=''; for(let M=a;M<=b;M++){pc+=(M===a?'M':'L')+x(M).toFixed(1)+','+y(P.C[M-P.LO]).toFixed(1); pd+=(M===a?'M':'L')+x(M).toFixed(1)+','+y(P.D[M-P.LO]).toFixed(1);}
+  g+=`<path d="${pc}L${x(b)},${y(0)}L${x(a)},${y(0)}Z" fill="var(--s-cap)" opacity=".18"/><path d="${pc}" fill="none" stroke="var(--s-cap)" stroke-width="2"/><path d="${pd}" fill="none" stroke="var(--s-dem)" stroke-width="2"/>`;
+  g+=`<line id="simCur" x1="0" x2="0" y1="${mt}" y2="${H-mb}" stroke="var(--text)" stroke-width="1.5"/><rect id="simHit" x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent" style="cursor:pointer"/></svg>`;
+  $('#cSim').innerHTML=g; SIM.cx={x,a,b,ml,W,mr};
+  const hit=$('#simHit'); const toM=e=>{const r=hit.getBoundingClientRect(); return Math.round(a+(e.clientX-r.left)/r.width*(n-1));};
+  hit.onmousemove=e=>{const M=Math.max(a,Math.min(b,toM(e))); showTip(e,`<div class="tt">${fmtM(M)}</div>${tr('Kapazität',fmt(P.C[M-P.LO]))}${tr('Absatz',fmt(P.D[M-P.LO]))}<div class="hint">Klick: zu diesem Monat springen</div>`);};
+  hit.onmouseleave=hideTip; hit.onclick=e=>{SIM.t=Math.max(a,Math.min(b,toM(e)));};
+}
+function updateSimCursor(){const c=$('#simCur'); if(!c||!SIM.cx) return; const M=Math.max(SIM.cx.a,Math.min(SIM.cx.b,Math.floor(SIM.t))); const X=SIM.cx.x(M); c.setAttribute('x1',X); c.setAttribute('x2',X);}
+$('#simPlay').onclick=()=>{const R=simRange(); if(SIM.t>=R.b) SIM.t=R.a; SIM.playing=!SIM.playing; $('#simPlay').textContent=SIM.playing?'❚❚ Pause':'▶ Abspielen';};
+$('#simRestart').onclick=()=>{SIM.t=simRange().a; SIM.parts.forEach(p=>SIM.scene.remove(p.m)); SIM.parts=[];};
+$('#simSlider').oninput=e=>{SIM.t=+e.target.value;};
+
+/* =================== Baustelle (Detail-Animation) =================== */
+const BAU={ready:false,dirty:true,t:0,playing:true,sel:null,last:0,time:0,prods:[]};
+const sm=(a,b,x)=>clamp01((x-a)/Math.max(1e-6,b-a));
+function bMat(c,o,em){const m=new THREE.MeshStandardMaterial({color:c,roughness:.75,metalness:.08}); if(o!=null){m.transparent=true;m.opacity=o;} if(em) m.emissive=new THREE.Color(em); return m;}
+function bx(w,h,d,m,x,y,z,par){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; if(par) par.add(o); return o;}
+function cy(r,h,m,x,y,z,par,seg){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||14),m); o.position.set(x||0,y||0,z||0); o.castShadow=true; if(par) par.add(o); return o;}
+/* --- Figuren & Fahrzeuge --- */
+function makeWorker(vest,helm){
+  const g=new THREE.Group(), skin=bMat(0xe0b48a), pants=bMat(0x2f3a4a), vm=bMat(vest), hm=bMat(helm);
+  const leg=(x)=>{const p=new THREE.Group(); p.position.set(x,0.85,0); bx(0.22,0.85,0.24,pants,0,-0.42,0,p); g.add(p); return p;};
+  const arm=(x)=>{const p=new THREE.Group(); p.position.set(x,1.55,0); bx(0.16,0.66,0.16,vm,0,-0.3,0,p); bx(0.13,0.12,0.13,skin,0,-0.66,0,p); g.add(p); return p;};
+  const legL=leg(-0.13),legR=leg(0.13); bx(0.56,0.72,0.32,vm,0,1.22,0,g); bx(0.58,0.06,0.34,bMat(0xd9e04a),0,1.1,0,g);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.17,12,10),skin); head.position.y=1.78; g.add(head);
+  const hel=new THREE.Mesh(new THREE.SphereGeometry(0.2,14,8,0,Math.PI*2,0,Math.PI/2),hm); hel.position.y=1.82; g.add(hel); bx(0.42,0.03,0.46,hm,0,1.83,0.04,g);
+  const armL=arm(-0.37),armR=arm(0.37);
+  const tool=bx(0.07,0.07,0.45,bMat(0x555555),0,-0.7,0.2,armR);
+  const clip=bx(0.3,0.4,0.03,bMat(0xf5f5f5),0,-0.72,0.12,armL);
+  const box=bx(0.7,0.45,0.5,bMat(0xc9a36b),0,1.15,0.55,g);
+  g.userData={legL,legR,armL,armR,tool,clip,box,head};
+  return g;
+}
+function animWorker(w,mode,t){
+  const u=w.userData; [u.legL,u.legR,u.armL,u.armR].forEach(p=>{p.rotation.set(0,0,0);}); u.tool.visible=u.clip.visible=u.box.visible=false; w.position.y=w.userData.baseY||0;
+  const s=Math.sin(t*8+w.userData.wid);
+  switch(mode){
+    case 'walk': u.legL.rotation.x=s*.6; u.legR.rotation.x=-s*.6; u.armL.rotation.x=-s*.5; u.armR.rotation.x=s*.5; break;
+    case 'carry': u.legL.rotation.x=s*.5; u.legR.rotation.x=-s*.5; u.armL.rotation.x=u.armR.rotation.x=-1.1; u.box.visible=true; break;
+    case 'hammer': u.armR.rotation.x=-1.5+Math.sin(t*11+w.userData.wid)*.7; u.armL.rotation.x=-.6; u.tool.visible=true; break;
+    case 'weld': u.armR.rotation.x=-1.25+Math.sin(t*30)*.03; u.armL.rotation.x=-1.0; u.tool.visible=true; u.legL.rotation.x=-.5; u.legR.rotation.x=.3; w.position.y=(w.userData.baseY||0)-0.12; break;
+    case 'shovel': u.armR.rotation.x=u.armL.rotation.x=-0.9+Math.sin(t*4+w.userData.wid)*.6; u.tool.visible=true; break;
+    case 'measure': u.armR.rotation.x=u.armL.rotation.x=-1.45; u.armR.rotation.z=.2; u.armL.rotation.z=-.2; break;
+    case 'clip': u.armL.rotation.x=-1.1; u.armR.rotation.x=-1.0+Math.sin(t*6)*.12; u.clip.visible=true; break;
+    case 'wave': u.armR.rotation.z=2.6+Math.sin(t*6)*.4; break;
+    default: u.armL.rotation.z=-.05; u.armR.rotation.z=.05;
+  }
+}
+function makeExcavator(){
+  const g=new THREE.Group(), y=bMat(0xf2b705), dk=bMat(0x2b2b2b);
+  bx(3.4,0.7,0.7,dk,0,0.35,0.85,g); bx(3.4,0.7,0.7,dk,0,0.35,-0.85,g); bx(1.6,0.4,1.2,dk,0,0.85,0,g);
+  const up=new THREE.Group(); up.position.y=1.05; g.add(up);
+  bx(2.6,1.0,2.0,y,-0.3,0.5,0,up); bx(1.0,1.2,0.95,bMat(0x9fd3ef,0.7),0.4,1.6,0.45,up); bx(1.0,0.08,0.95,y,0.4,2.22,0.45,up);
+  const boom=new THREE.Group(); boom.position.set(0.9,0.9,-0.3); up.add(boom); bx(3.2,0.4,0.4,y,1.6,0,0,boom);
+  const stick=new THREE.Group(); stick.position.set(3.2,0,0); boom.add(stick); bx(0.32,2.2,0.32,y,0,-1.1,0,stick);
+  const bucket=new THREE.Group(); bucket.position.set(0,-2.2,0); stick.add(bucket); bx(0.8,0.6,0.9,dk,0.3,-0.2,0,bucket);
+  return {g,up,boom,stick,bucket};
+}
+function makeCrane(){
+  const g=new THREE.Group(), y=bMat(0xf2c230), gr=bMat(0x777777);
+  bx(3,0.6,3,gr,0,0.3,0,g);
+  for(let i=0;i<9;i++){ bx(1,2,1,y,0,1.6+i*2,0,g); }
+  const top=new THREE.Group(); top.position.y=19; g.add(top);
+  bx(22,0.7,0.7,y,8,0,0,top); bx(7,0.6,0.7,y,-4,0,0,top); bx(2,1.6,1.4,bMat(0x8c8c8c),-6.5,-0.6,0,top); bx(1.4,1.4,1.4,bMat(0xdddddd),0,1,0,top);
+  const trolley=new THREE.Group(); top.add(trolley); bx(0.9,0.4,0.9,gr,0,-0.5,0,trolley);
+  const cable=bx(0.06,1,0.06,bMat(0x222222),0,0,0,trolley);
+  const load=bx(6,0.35,0.35,bMat(0x9aa3ad),0,0,0,trolley);
+  return {g,top,trolley,cable,load};
+}
+function makeTruck(cabCol,kind){
+  const g=new THREE.Group(), dk=bMat(0x222222);
+  bx(2.0,2.2,2.3,bMat(cabCol),4.0,1.65,0,g); bx(0.1,0.9,2.0,bMat(0x9fd3ef,0.8),5.02,2.1,0,g);
+  bx(9.5,0.4,2.3,bMat(0x555555),0,0.75,0,g);
+  [[-3.5],[-2.3],[3.8]].forEach(([x])=>{[-1.1,1.1].forEach(z=>{const w=cy(0.5,0.4,dk,x,0.5,z,g); w.rotation.x=Math.PI/2;});});
+  let drum=null;
+  if(kind==='mixer'){drum=new THREE.Group(); drum.position.set(-0.8,2.3,0); drum.rotation.z=0.25; g.add(drum); const d=cy(1.15,5,bMat(0xe8e8e8),0,0,0,drum,16); d.rotation.z=Math.PI/2; bx(5,0.2,0.4,bMat(0xeb6834),0,0,1.1,drum);}
+  else if(kind==='dump'){bx(5.8,1.4,2.3,bMat(0x8a6d3b),-1.2,1.65,0,g);}
+  else {bx(6.6,0.15,2.3,bMat(0x6b5a40),-1.4,1.0,0,g);}
+  return {g,drum};
+}
+function makeForklift(){
+  const g=new THREE.Group(), o=bMat(0xeb6834), dk=bMat(0x222222);
+  bx(2.0,1.0,1.3,o,0,0.8,0,g); bx(0.8,0.7,1.2,bMat(0x555555),-0.8,1.5,0,g);
+  [[-0.6,0.6],[0.6,0.6]].forEach(([x])=>{[-0.6,0.6].forEach(z=>{const w=cy(0.35,0.3,dk,x,0.35,z,g); w.rotation.x=Math.PI/2;});});
+  [[-0.45],[0.45]].forEach(([z])=>{bx(0.08,2.0,0.08,dk,-0.1,2.3,z*1.2,g); bx(0.08,2.0,0.08,dk,0.7,2.3,z*1.2,g);}); bx(1.0,0.08,1.3,dk,0.3,3.3,0,g);
+  bx(0.12,2.8,0.12,dk,1.1,1.6,-0.35,g); bx(0.12,2.8,0.12,dk,1.1,1.6,0.35,g);
+  const forks=new THREE.Group(); forks.position.set(1.2,0.2,0); g.add(forks); bx(1.4,0.08,0.18,dk,0.7,0,-0.35,forks); bx(1.4,0.08,0.18,dk,0.7,0,0.35,forks);
+  const drv=new THREE.Mesh(new THREE.SphereGeometry(0.2,10,8),bMat(0xe0b48a)); drv.position.set(-0.1,2.0,0); g.add(drv);
+  const hel=new THREE.Mesh(new THREE.SphereGeometry(0.22,10,6,0,Math.PI*2,0,Math.PI/2),bMat(0xffffff)); hel.position.set(-0.1,2.05,0); g.add(hel);
+  return {g,forks};
+}
+function makeLift(){
+  const g=new THREE.Group(); bx(2.2,0.5,1.2,bMat(0x2a78d6),0,0.35,0,g);
+  const sc=new THREE.Group(); g.add(sc); const a=bx(2.2,0.1,0.1,bMat(0x333333),0,0,0.5,sc), b2=bx(2.2,0.1,0.1,bMat(0x333333),0,0,-0.5,sc);
+  const plat=new THREE.Group(); g.add(plat); bx(2.4,0.12,1.3,bMat(0x2a78d6),0,0,0,plat); bx(2.4,0.05,0.05,bMat(0xf2c230),0,1.0,0.62,plat); bx(2.4,0.05,0.05,bMat(0xf2c230),0,1.0,-0.62,plat);
+  return {g,sc,plat,setH(h){plat.position.y=0.6+h; sc.position.y=0.6+h/2; sc.scale.y=1; sc.rotation.z=0; a.scale.y=b2.scale.y=Math.max(1,h*8); }};
+}
+/* --- Szene aufbauen --- */
+function initBau(){
+  if(BAU.ready) return true;
+  if(typeof THREE==='undefined'){ $('#bauScene').insertAdjacentHTML('beforeend','<div style="padding:60px 20px;text-align:center" class="hint">3D-Bibliothek konnte nicht geladen werden (Internetverbindung nötig).</div>'); return false; }
+  const el=$('#bauScene'); const r=new THREE.WebGLRenderer({antialias:true}); r.setPixelRatio(Math.min(2,devicePixelRatio)); r.shadowMap.enabled=true; r.shadowMap.type=THREE.PCFSoftShadowMap; el.prepend(r.domElement);
+  const scene=new THREE.Scene(); const cam=new THREE.PerspectiveCamera(42,1,0.3,1500);
+  const ctl=new THREE.OrbitControls(cam,r.domElement); ctl.enableDamping=true; ctl.maxPolarAngle=Math.PI*0.47; ctl.minDistance=8; r.domElement.addEventListener('wheel',()=>{BAU.userZoom=true;},{passive:true}); r.domElement.addEventListener('pointerdown',()=>{BAU.userZoom=true;}); r.domElement.addEventListener('touchstart',e=>{if(e.touches.length>1) BAU.userZoom=true;},{passive:true}); ctl.maxDistance=220;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x7a8a6a,0.7));
+  const sun=new THREE.DirectionalLight(0xfff4e0,0.85); sun.position.set(-40,70,50); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); const c=sun.shadow.camera; c.left=-90;c.right=90;c.top=90;c.bottom=-90;c.far=250; scene.add(sun);
+  Object.assign(BAU,{r,scene,cam,ctl,ready:true,root:new THREE.Group()}); scene.add(BAU.root);
+  new ResizeObserver(()=>resizeBau()).observe(el); resizeBau();
+  requestAnimationFrame(bauLoop);
+  return true;
+}
+function resizeBau(){const el=$('#bauScene'); const w=el.clientWidth,h=el.clientHeight; if(!w||!h||!BAU.r) return; BAU.r.setSize(w,h,false); BAU.cam.aspect=w/h; BAU.cam.updateProjectionMatrix();}
+function bauFillSelect(){
+  const s=$('#bauSel'); const prev=BAU.sel;
+  s.innerHTML=P.plants.map((p,i)=>`<option value="${i}">Anlage ${i+1} (${p.v}) · ${bName(P.buildings[p.b])}${p.nb?' · mit Neubau':''}</option>`).join('');
+  if(prev==null||prev>=P.plants.length){const nb=P.plants.findIndex(p=>p.nb); BAU.sel=nb>=0?nb:0;}
+  s.value=BAU.sel;
+}
+function bauRange(p){const s=Math.floor(Math.min(p.first,p.nb?p.nb[0].s:Infinity))-1; return {a:s,b:p.R+S.phases.rampDur+3};}
+const SLW=11, BH=7.5;
+function buildBau(){
+  BAU.dirty=false; bauFillSelect(); if(!P.plants.length) return;
+  const root=BAU.root; while(root.children.length){const o=root.children.pop(); o.traverse(n=>{if(n.geometry) n.geometry.dispose();});}
+  BAU.prods.forEach(q=>BAU.scene.remove(q)); BAU.prods=[];
+  const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  BAU.scene.background=new THREE.Color(dark?0x161b22:0xcfe3f2); BAU.scene.fog=new THREE.Fog(dark?0x161b22:0xcfe3f2,160,420);
+  const p=P.plants[BAU.sel], b=P.buildings[p.b];
+  const n=Math.max(b.plants.length,b.isNew?S.layout.capNeubau:S.layout.capBestand), W=n*SLW+4, D=20; BAU.W=W; BAU.D=D; BAU.p=p; BAU.b=b;
+  const grass=new THREE.Mesh(new THREE.PlaneGeometry(900,900),bMat(dark?0x26331f:0x9cbf83)); grass.rotation.x=-Math.PI/2; grass.receiveShadow=true; root.add(grass);
+  const site=new THREE.Mesh(new THREE.PlaneGeometry(W+30,D+34),bMat(dark?0x4a4740:0xc9c0ae)); site.rotation.x=-Math.PI/2; site.position.set(0,0.01,4); site.receiveShadow=true; root.add(site);
+  const roadZ=D/2+16; BAU.roadZ=roadZ;
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(600,7),bMat(dark?0x2a2a2a:0x5b5d60)); road.rotation.x=-Math.PI/2; road.position.set(0,0.02,roadZ); root.add(road);
+  for(let x=-290;x<300;x+=8){const l=new THREE.Mesh(new THREE.PlaneGeometry(3.5,0.25),bMat(0xf0f0f0)); l.rotation.x=-Math.PI/2; l.position.set(x,0.03,roadZ); root.add(l);}
+  const access=new THREE.Mesh(new THREE.PlaneGeometry(W,roadZ-D/2),bMat(dark?0x35332e:0xa9a497)); access.rotation.x=-Math.PI/2; access.position.set(0,0.015,(roadZ+D/2)/2); root.add(access);
+  // Bäume
+  for(let i=0;i<26;i++){const a=i/26*Math.PI*2, rr=Math.max(W,D)/2+40+((i*37)%17); const t=new THREE.Group(); t.position.set(Math.cos(a)*rr*1.3,0,Math.sin(a)*rr*0.9-10); if(Math.abs(t.position.z-roadZ)<8) continue; cy(0.35,2.4,bMat(0x6b4f33),0,1.2,0,t); const k=new THREE.Mesh(new THREE.ConeGeometry(2.2,5,10),bMat(dark?0x2f5a34:0x4f8a4a)); k.position.y=4.6; k.castShadow=true; t.add(k); root.add(t);}
+  // Gebäude
+  const G={}; BAU.G=G; const bg=new THREE.Group(); root.add(bg); G.g=bg;
+  G.pit=new THREE.Mesh(new THREE.PlaneGeometry(W+6,D+6),bMat(0x5a4330)); G.pit.rotation.x=-Math.PI/2; G.pit.position.y=0.03; bg.add(G.pit);
+  G.pile=new THREE.Mesh(new THREE.ConeGeometry(5,3.5,14),bMat(0x7a5a3c)); G.pile.position.set(-W/2-9,1.75,-D/2-2); G.pile.castShadow=true; bg.add(G.pile);
+  G.slab=bx(W,0.4,D,bMat(dark?0x8b8f94:0xb8bcc0),0,0.2,0,bg);
+  G.slabTop=0.4;
+  const colM=bMat(0x6a7480), wallM=bMat(dark?0x9aa3ad:0xdfe3e8), wallSide=bMat(dark?0x9aa3ad:0xdfe3e8,0.45), roofM=bMat(0x8a939c);
+  G.cols=[]; const xs=[]; for(let i=0;i<=n;i++) xs.push(-W/2+2+i*SLW>W/2?W/2:-W/2+(i===0?0:2+i*SLW-(i===n?-2:0)));
+  const colX=[-W/2]; for(let i=1;i<n;i++) colX.push(-W/2+2+i*SLW); colX.push(W/2);
+  for(const x of colX) for(const z of [-D/2,D/2]){const c=bx(0.5,BH,0.5,colM,x,BH/2+0.4,z,bg); G.cols.push(c);}
+  for(const z of [-D/2+D/3,D/2-D/3]) for(const x of [-W/2,W/2]){G.cols.push(bx(0.5,BH,0.5,colM,x,BH/2+0.4,z,bg));}
+  G.walls=[];
+  for(let i=0;i<colX.length-1;i++){const w=colX[i+1]-colX[i]; G.walls.push(bx(w,BH,0.25,wallM,colX[i]+w/2,BH/2+0.4,-D/2,bg));}
+  for(const x of [-W/2,W/2]) for(let k=0;k<3;k++) G.walls.push(bx(0.25,BH,D/3,wallSide,x,BH/2+0.4,-D/2+D/6+k*D/3,bg));
+  G.roof=[]; for(const x of colX) G.roof.push(bx(0.35,0.6,D+0.6,roofM,x,BH+0.7,0,bg));
+  for(const z of [-D/2,-D/6,D/6,D/2]) G.roof.push(bx(W,0.3,0.3,roofM,0,BH+0.95,z,bg));
+  G.scaf=new THREE.Group(); bg.add(G.scaf); for(let x=-W/2;x<=W/2;x+=2.5){bx(0.08,BH+1,0.08,bMat(0x999999),x,(BH+1)/2,-D/2-1.4,G.scaf); bx(0.08,BH+1,0.08,bMat(0x999999),x,(BH+1)/2,-D/2-0.6,G.scaf);} for(let h=2;h<BH+1;h+=2.2) bx(W,0.1,1.0,bMat(0xb5884f),0,h,-D/2-1.0,G.scaf);
+  // Zaun
+  G.fence=new THREE.Group(); bg.add(G.fence); const fx=W/2+12, fz0=-D/2-8, fz1=roadZ-4.5, fm=bMat(0xcccccc,0.35);
+  const fseg=(x1,z1,x2,z2)=>{const L=Math.hypot(x2-x1,z2-z1); const m=bx(L,2,0.05,fm,(x1+x2)/2,1,(z1+z2)/2,G.fence); m.rotation.y=-Math.atan2(z2-z1,x2-x1); m.castShadow=false; for(let s=0;s<=L;s+=3.5){bx(0.1,2.1,0.1,bMat(0x888888),x1+(x2-x1)*s/L,1.05,z1+(z2-z1)*s/L,G.fence);}};
+  fseg(-fx,fz0,fx,fz0); fseg(-fx,fz0,-fx,fz1); fseg(fx,fz0,fx,fz1); fseg(-fx,fz1,-W/2+1,fz1); fseg(W/2-1,fz1,fx,fz1);
+  // Baucontainer
+  G.cont=new THREE.Group(); G.cont.position.set(-W/2-8,0,D/2+6); bg.add(G.cont); bx(6,2.6,2.4,bMat(0x5c7a99),0,1.3,0,G.cont); bx(6,2.6,2.4,bMat(0x5c7a99),0,3.9,0,G.cont); bx(1.2,0.8,0.05,bMat(0x9fd3ef),-1.5,1.6,1.22,G.cont); bx(1.2,0.8,0.05,bMat(0x9fd3ef),1.5,4.1,1.22,G.cont);
+  G.surv=new THREE.Group(); bg.add(G.surv); [[-W/2,-D/2],[W/2,-D/2],[-W/2,D/2],[W/2,D/2]].forEach(([x,z])=>{bx(0.1,1.2,0.1,bMat(0xeb6834),x,0.6,z,G.surv);});
+  const tri=new THREE.Group(); tri.position.set(-W/2+3,0,D/2+3); G.surv.add(tri); for(let k=0;k<3;k++){const l=bx(0.05,1.6,0.05,bMat(0xf2c230),Math.cos(k*2.1)*0.35,0.75,Math.sin(k*2.1)*0.35,tri); l.rotation.set(Math.sin(k*2.1)*0.25,0,-Math.cos(k*2.1)*0.25);} bx(0.3,0.25,0.25,bMat(0x333333),0,1.6,0,tri);
+  // Plätze (Reinräume + Anlagen)
+  BAU.slots=b.plants.map((pi,k)=>{
+    const sp=P.plants[pi], x=-W/2+2+k*SLW+SLW/2, z=-1.5, o={p:sp,idx:pi,x,z,g:new THREE.Group()}; o.g.position.set(x,0.4,z); bg.add(o.g);
+    const RW=8.6, RD=11, RH=4.2; o.RW=RW; o.RD=RD; o.RH=RH;
+    o.floor=bx(RW,0.06,RD,bMat(0xbfe0f0),0,0.03,0,o.g); o.floor.castShadow=false;
+    o.marks=new THREE.Group(); o.g.add(o.marks); [[0,-RD/2,RW,0.08],[0,RD/2,RW,0.08]].forEach(([mx,mz,w,d])=>bx(w,0.02,d,bMat(0xeb6834),mx,0.06,mz,o.marks)); [[-RW/2],[RW/2]].forEach(([mx])=>bx(0.08,0.02,RD,bMat(0xeb6834),mx,0.06,0,o.marks));
+    o.panels=[]; const pm=bMat(0xf4f6f8), gm=bMat(0x9fd3ef,0.28);
+    const pw=RW/4; for(let i=0;i<4;i++) o.panels.push(bx(pw-0.05,RH,0.12,pm,-RW/2+pw/2+i*pw,RH/2,-RD/2,o.g));
+    const pd=RD/5; for(const sx of [-1,1]) for(let i=0;i<5;i++) o.panels.push(bx(0.12,RH,pd-0.05,pm,sx*RW/2,RH/2,-RD/2+pd/2+i*pd,o.g));
+    for(let i=0;i<4;i++){ if(i===2){o.panels.push(bx(pw-0.05,0.6,0.12,pm,-RW/2+pw/2+i*pw,RH-0.3,RD/2,o.g)); continue;} o.panels.push(bx(pw-0.05,RH,0.1,gm,-RW/2+pw/2+i*pw,RH/2,RD/2,o.g)); }
+    o.ceil=bx(RW,0.12,RD,bMat(0xf4f6f8,0.35),0,RH,0,o.g); o.ceil.castShadow=false;
+    o.ffu=[]; for(let i=0;i<3;i++) for(let j=0;j<2;j++) o.ffu.push(bx(1.4,0.45,1.4,bMat(0xdfe6ec),-2.6+i*2.6,RH+0.3,-2+j*4,o.g));
+    o.duct=[]; o.duct.push(bx(0.7,0.7,RD+2,bMat(0xb8c2cc),-RW/2+1,RH+1.1,0,o.g)); o.duct.push(bx(RW-1,0.5,0.5,bMat(0xb8c2cc),0,RH+1.0,-2,o.g)); o.duct.push(bx(RW-1,0.5,0.5,bMat(0xb8c2cc),0,RH+1.0,2,o.g));
+    o.pallets=new THREE.Group(); o.pallets.position.set(0,0,RD/2+3.2); o.g.add(o.pallets); for(let i=0;i<3;i++){bx(1.4,0.15,1.2,bMat(0x9b7b52),-2+i*2,0.08,0,o.pallets); for(let l=0;l<4;l++) bx(1.3,0.12,1.1,bMat(0xf4f6f8),-2+i*2,0.22+l*0.13,0,o.pallets);}
+    // Anlage
+    const mm=bMat(sp.v==='A'?0x57c17b:0x4fae9a); o.mm=mm; o.mods=[];
+    const mg=new THREE.Group(); o.g.add(mg); o.mg=mg;
+    const md=(obj,fy)=>{obj.userData.fy=obj.position.y; o.mods.push(obj); return obj;};
+    md(bx(5.6,0.4,3.0,bMat(0x6b737c),0,0.2,-1.5,mg));
+    md(bx(sp.v==='A'?2.4:3.2,1.8,2.0,mm,-0.9,1.3,-1.5,mg));
+    const t1=cy(0.45,2.6,bMat(0xc9ced4),1.4,1.7,-2.1,mg,18); md(t1); if(sp.v==='B'){md(cy(0.45,2.6,bMat(0xc9ced4),2.3,1.7,-2.1,mg,18));}
+    md(bx(0.8,1.9,0.5,bMat(0x8a939c),-2.6,1.0,-3.1,mg));
+    md(bx(0.8,0.25,5.6,bMat(0x40464d),1.6,0.7,1.6,mg));
+    o.lamp=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,10),new THREE.MeshBasicMaterial({color:0x57c17b})); o.lamp.position.set(-0.9,2.5,-1.5); mg.add(o.lamp); md(o.lamp);
+    o.crate=new THREE.Group(); root.add(o.crate); const cm=bMat(0xc49a5c); bx(3.4,2.2,2.6,cm,0,1.1,0,o.crate); bx(3.5,0.1,0.1,bMat(0x8a6a3a),0,1.6,1.31,o.crate); bx(3.5,0.1,0.1,bMat(0x8a6a3a),0,0.6,1.31,o.crate);
+    o.lab=makeLabel(); o.lab.position.set(0,RH+4.2,0); o.lab.scale.set(7,1.9,1); o.g.add(o.lab);
+    return o;
+  });
+  BAU.focus=BAU.slots.find(o=>o.idx===BAU.sel);
+  // Fahrzeuge
+  BAU.ex=makeExcavator(); root.add(BAU.ex.g);
+  BAU.crane=makeCrane(); BAU.crane.g.position.set(W/2+5,0,-D/2-4); root.add(BAU.crane.g);
+  BAU.dump=makeTruck(0xd04030,'dump'); root.add(BAU.dump.g);
+  BAU.mixer=makeTruck(0x2a78d6,'mixer'); root.add(BAU.mixer.g);
+  BAU.truck=makeTruck(0x2f6fb5,'flat'); root.add(BAU.truck.g);
+  BAU.fork=makeForklift(); root.add(BAU.fork.g);
+  BAU.lift=makeLift(); root.add(BAU.lift.g);
+  // Arbeiter
+  const vests=[0xf28c28,0xf2c230,0xf28c28,0x2a78d6,0xf2c230,0xf28c28,0xffffff,0xf28c28,0xf2c230,0x2a78d6];
+  BAU.workers=vests.map((v,i)=>{const w=makeWorker(v,i===6?0xffffff:i%3?0xf2c230:0xffffff); w.userData.wid=i; w.position.set(G.cont.position.x+(i%5)*1.2-2.4,0,G.cont.position.z+2+Math.floor(i/5)*1.2); root.add(w); return w;});
+  // Funken
+  const N=120, pos=new Float32Array(N*3); const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  BAU.sparks=new THREE.Points(geo,new THREE.PointsMaterial({color:0xffc35a,size:0.18,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); root.add(BAU.sparks);
+  BAU.spk=Array.from({length:N},()=>({x:0,y:-99,z:0,vx:0,vy:0,vz:0,l:0}));
+  BAU.dust=[]; for(let i=0;i<10;i++){const d=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,6),new THREE.MeshBasicMaterial({color:0xb59a78,transparent:true,opacity:0.3,depthWrite:false})); root.add(d); BAU.dust.push({m:d,l:Math.random()});}
+  BAU.blab=makeLabel(); BAU.blab.position.set(0,BH+4.5,-D/2); BAU.blab.scale.set(12,3.3,1); bg.add(BAU.blab);
+  const R=bauRange(p); if(!(BAU.t>=R.a&&BAU.t<=R.b)) BAU.t=R.a;
+  // Kamera
+  const nbStart=b.isNew&&P.plants[b.plants[0]].nb&&BAU.t<b.e; const fx2=BAU.focus&&!nbStart?BAU.focus.x:0; BAU.ctl.target.set(fx2,2,1); const dd=nbStart?Math.max(30,W*0.7):20; BAU.cam.position.set(fx2+dd*0.7,dd*0.75,dd*1.15+4); BAU.ctl.update();
+  renderBauTl();
+}
+/* --- Zustände --- */
+function grpProg(arr,t){if(!arr||!arr.length) return null; const a=arr[0].s,e=arr[arr.length-1].e; return {a,e,f:sm(a,e,t),act:t>=a&&t<e};}
+function anStages(p){const ri=Math.max(0,p.an.findIndex(x=>x.room)); const ein=p.an[ri]||{s:p.R,e:p.R}; const val=p.an[p.an.length-1]||{s:p.R,e:p.R};
+  return {sup:{s:p.an.length?p.an[0].s:p.R,e:ein.s}, ein, mon:{s:ein.e,e:val.s}, val:{s:val.s,e:p.R}};}
+function bauStatus(p,t){
+  const nb=grpProg(p.nb,t), b=P.buildings[p.b], rr=grpProg(p.rr,t), st=anStages(p), out=[];
+  if(nb&&nb.act){const f=nb.f; const s=f<.15?['Baustelleneinrichtung & Vermessung','Zaun, Baucontainer und Vermessungspunkte werden gesetzt.']:f<.35?['Erdarbeiten','Bagger hebt die Baugrube aus, Muldenkipper fahren Aushub ab.']:f<.47?['Fundament & Bodenplatte','Fahrmischer liefern Beton, die Bodenplatte wird betoniert.']:f<.65?['Stahlbau','Turmdrehkran stellt Stützen, Arbeiter verschrauben und schweißen.']:f<.85?['Gebäudehülle','Wandpaneele und Dachbinder werden montiert, Gerüst steht.']:['TGA & Abnahme','Gebäudetechnik wird fertiggestellt, Abnahme und Übergabe.'];
+    out.push({cat:'neubau',t:s[0],d:s[1],f,ph:curName(p.nb,t)});}
+  if(rr&&rr.act){const f=rr.f; const s=f<.2?['Aufmaß & Anzeichnen','Reinraumgrenzen werden auf dem Boden angezeichnet, GMP-Layout festgelegt.']:f<.3?['Anlieferung Reinraumpaneele','Paneele werden auf Paletten angeliefert und verteilt.']:f<.65?['Montage Reinraumwände','Wandpaneele werden gestellt und verfugt, Scherenbühne im Einsatz.']:f<.85?['HLK & Reinraumtechnik','Decke, FFU-Filtereinheiten und Lüftungskanäle werden montiert.']:['Qualifizierung','Partikelmessung nach ISO 14644, Druckkaskade und Luftwechsel werden geprüft.'];
+    out.push({cat:'reinraum',t:s[0],d:s[1],f,ph:curName(p.rr,t)});}
+  if(t>=st.sup.s&&t<st.sup.e) out.push({cat:'anlage',t:'Anlage beim Lieferanten',d:'Bestellung, Fertigung, FAT beim Hersteller – noch nicht auf der Baustelle.',f:sm(st.sup.s,st.sup.e,t),ph:curName(p.an,t)});
+  if(t>=st.ein.s&&t<st.ein.e) out.push({cat:'anlage',t:'Anlieferung & Einbringung',d:'LKW liefert die Anlage in Kisten an, Stapler bringt sie in den Reinraum, Kisten werden ausgepackt.',f:sm(st.ein.s,st.ein.e,t),ph:curName(p.an,t)});
+  if(t>=st.mon.s&&t<st.mon.e) out.push({cat:'anlage',t:'Montage & Inbetriebnahme',d:'Module werden gesetzt, verschraubt, verschweißt und verkabelt; erste Inbetriebnahme.',f:sm(st.mon.s,st.mon.e,t),ph:curName(p.an,t)});
+  if(t>=st.val.s&&t<st.val.e) out.push({cat:'anlage',t:'Prozessvalidierung',d:'IQ/OQ/PQ: Prüfläufe, Dokumentation, Freigabe durch Qualitätssicherung.',f:sm(st.val.s,st.val.e,t),ph:curName(p.an,t)});
+  if(t>=p.R&&t<p.R+S.phases.rampDur) out.push({cat:'ramp',t:'Ramp-Up',d:`Produktion läuft an – Leistung ${nf.format(rampFactor(Math.floor(t-p.R))*100)} %.`,f:sm(p.R,p.R+S.phases.rampDur,t)});
+  if(t>=p.R+S.phases.rampDur) out.push({cat:'ramp',t:'Serienproduktion',d:'Anlage läuft im Regelbetrieb.',f:1});
+  if(!out.length) out.push({cat:'none',t:t<p.first?'Noch nichts zu tun':'Wartet auf nächsten Schritt',d:t<p.first?`Projektstart ${fmtM(p.first)}.`:'',f:0});
+  return out;
+}
+function curName(arr,t){const x=arr&&arr.find(x=>t>=x.s&&t<x.e); return x?x.n:'';}
+function slotState(o,t){
+  const p=o.p, rr=grpProg(p.rr,t)||{f:1}, st=anStages(p);
+  return {rr:t<rr.a?-1:rr.f, ein:t<st.ein.s?-1:sm(st.ein.s,st.ein.e,t), mon:t<st.mon.s?-1:sm(st.mon.s,st.mon.e,t), val:t<st.val.s?-1:sm(st.val.s,st.val.e,t), run:t>=p.R, st};
+}
+/* --- Update --- */
+const lerp=(a,b,f)=>a+(b-a)*f;
+function updateBau(dt){
+  const t=BAU.t, M=Math.floor(t), time=BAU.time, p=BAU.p, b=BAU.b, G=BAU.G, W=BAU.W, D=BAU.D;
+  $('#bauDate').textContent=fmtM(M);
+  // Gebäude
+  let bf=1; const nbp=b.isNew?P.plants[b.plants[0]]:null;
+  if(nbp&&nbp.nb) bf=t<b.s?-1:sm(b.s,b.e,t);
+  const nbAct=bf>=0&&bf<1;
+  G.pit.visible=bf>=0.12&&bf<0.47; G.pit.material.color.set(bf<0.35?0x5a4330:0x6d5a48);
+  G.pile.visible=bf>=0.15&&bf<0.5; G.pile.scale.setScalar(bf<0.35?Math.max(.05,sm(.15,.35,bf)):Math.max(.05,1-sm(.35,.5,bf)));
+  G.slab.visible=bf>=0.35; G.slab.scale.y=Math.max(.05,sm(.35,.47,bf)); G.slab.position.y=0.2*G.slab.scale.y;
+  G.cols.forEach((c,i)=>{const f=sm(.47+.15*i/G.cols.length,.5+.15*i/G.cols.length,bf); c.visible=f>0; c.scale.y=Math.max(.02,f); c.position.y=0.4+BH*f/2;});
+  G.walls.forEach((c,i)=>{const f=sm(.65+.17*i/G.walls.length,.67+.17*i/G.walls.length,bf); c.visible=f>0; c.scale.y=Math.max(.02,f); c.position.y=0.4+BH*f/2;});
+  G.roof.forEach((c,i)=>{c.visible=bf>=.72+.12*i/G.roof.length&&(bf<1||!$('#bauCut').checked);});
+  G.scaf.visible=bf>=.6&&bf<.97; G.fence.visible=nbAct; G.surv.visible=bf>=0&&bf<.2;
+  const anyWork=t>=p.first&&t<p.R+0.5; G.cont.visible=anyWork||nbAct;
+  setLabel(BAU.blab,bName(b),bf<0?'geplant · Baubeginn '+fmtM(b.s):nbAct?`im Bau · ${Math.round(bf*100)} %`:`${b.plants.length} Anlagenplätze`,b.isNew?'#9b8cf0':'#9aa3ad');
+  BAU.blab.visible=true;
+  // Bagger
+  const ex=BAU.ex; ex.g.visible=bf>=.12&&bf<.38; if(ex.g.visible){ex.g.position.set(-W/4+Math.sin(time*.1)*W/5,0,-D/6); ex.up.rotation.y=Math.sin(time*.7)*1.1; ex.boom.rotation.z=-0.35+Math.sin(time*1.4)*.3; ex.stick.rotation.z=-0.3+Math.sin(time*1.4+1)*.4; ex.bucket.rotation.z=Math.sin(time*1.4+2)*.5;}
+  const dump=BAU.dump; dump.g.visible=bf>=.15&&bf<.48; if(dump.g.visible){const c=(time*0.12)%1; const x=c<.5?lerp(-140,-W/2-9,sm(0,.35,c)):lerp(-W/2-9,140,sm(.6,1,c)); dump.g.position.set(x,0,c<.35||c>.6?BAU.roadZ+1.7:BAU.roadZ+1.7); dump.g.rotation.y=0;}
+  const mx=BAU.mixer; mx.g.visible=bf>=.33&&bf<.48; if(mx.g.visible){mx.g.position.set(-W/2-4,0,D/2+5); mx.g.rotation.y=Math.PI*0.15; mx.drum.rotation.x=time*2;}
+  const cr=BAU.crane; cr.g.visible=bf>=.42&&bf<.95; if(cr.g.visible){cr.top.rotation.y=Math.PI*0.75+Math.sin(time*.35)*1.2; const d=8+Math.sin(time*.5)*6; cr.trolley.position.x=d; const L=8+Math.sin(time*.9)*5; cr.cable.scale.y=L; cr.cable.position.y=-0.6-L/2; cr.load.position.y=-0.6-L; cr.load.visible=bf<.85;}
+  // Plätze
+  let fs=null;
+  BAU.slots.forEach(o=>{const s=slotState(o,t); if(o===BAU.focus) fs=s;
+    const rf=s.rr; o.floor.visible=rf>=0; o.marks.visible=rf>=0&&rf<.35;
+    const np=o.panels.length; o.panels.forEach((pn,i)=>{const f=sm(.3+.35*i/np,.3+.35*(i+1)/np,rf); pn.visible=rf>=0&&f>0; const hdr=pn.geometry.parameters.height<1; pn.scale.y=hdr?1:Math.max(.05,f); pn.position.y=hdr?o.RH-0.3:o.RH*pn.scale.y/2;});
+    const cut=rf>=1&&$('#bauCut').checked; o.ceil.visible=rf>=.65&&!cut; o.ffu.forEach((f,i)=>f.visible=rf>=.65+.15*i/o.ffu.length&&!cut); o.duct.forEach((d,i)=>d.visible=rf>=.78+.05*i&&!cut);
+    o.floor.material.color.set(rf>=.85&&rf<1?(Math.sin(time*3)>0?0x9fd8f5:0xbfe0f0):0xbfe0f0);
+    o.pallets.visible=rf>=.2&&rf<.65; o.pallets.children.forEach((c,i)=>{if(i%5) c.visible=rf<.3+.35*(1-i/o.pallets.children.length)||rf<.3;});
+    // Anlage
+    const m=s.mon, nm=o.mods.length; o.mg.visible=s.ein>=0.85||m>=0;
+    o.mods.forEach((md,i)=>{const a=i/nm, f=m<0?0:sm(a,a+1/nm*0.9,m); md.visible=m>=0&&f>0||s.val>=0||s.run; if(s.val>=0||s.run) {md.position.y=md.userData.fy; return;} md.position.y=md.userData.fy+(1-f)*3;});
+    let col=0xf08a3c, lab='';
+    if(s.run){col=o.p.v==='A'?0x57c17b:0x4fae9a; lab=t<o.p.R+S.phases.rampDur?`Ramp-Up ${nf.format(rampFactor(Math.floor(t-o.p.R))*100)} %`:'Produktion';}
+    else if(s.val>=0){col=0xf2c230; lab=`Validierung ${Math.round(s.val*100)} %`;}
+    else if(m>=0){lab=`Montage ${Math.round(m*100)} %`;}
+    else if(s.ein>=0){lab='Anlieferung';}
+    else if(rf>=0&&rf<1){lab=`Reinraumbau ${Math.round(rf*100)} %`;}
+    else if(rf>=1){lab='Reinraum fertig';}
+    o.mm.color.set(s.run||s.val>=0?col:0xb0b6bc); o.lamp.material.color.set(s.val>=0&&!s.run?(Math.sin(time*7)>0?0xf2c230:0x333333):s.run?0x57c17b:0xf08a3c);
+    o.lab.visible=!!lab&&(bf>=1||!b.isNew||o!==BAU.focus||bf<0)&&!(b.isNew&&bf<1&&bf>=0); if(lab) setLabel(o.lab,`Anlage ${o.idx+1} · ${o.p.v}`,lab,'#'+col.toString(16).padStart(6,'0'));
+    // Kiste (nur Platz-unabhängig fokussiert animiert, sonst Standard)
+    o.crate.visible=false;
+  });
+  // Anlieferung
+  const o=BAU.focus, tr=BAU.truck, fk=BAU.fork; tr.g.visible=false; fk.g.visible=false;
+  const wx=x=>BAU.G.g.position.x+x;
+  if(o&&fs){
+    const e=fs.ein, front=D/2, sx=o.x, crateFloor=new THREE.Vector3(sx,0.4,o.z-0.5);
+    if(e>=0&&e<1){
+      tr.g.visible=true; fk.g.visible=true;
+      const ty=BAU.roadZ+1.7, park=front+7.5;
+      if(e<.2){tr.g.position.set(lerp(-160,sx,sm(0,.2,e)),0,ty); tr.g.rotation.y=0;}
+      else if(e<.3){const f=sm(.2,.3,e); tr.g.position.set(sx,0,lerp(ty,park,f)); tr.g.rotation.y=-Math.PI/2*f;}
+      else if(e<.75){tr.g.position.set(sx,0,park); tr.g.rotation.y=-Math.PI/2;}
+      else {const f=sm(.75,.95,e); tr.g.position.set(lerp(sx,sx+160,sm(.85,1,e)),0,f<.5?lerp(park,ty,f*2):ty); tr.g.rotation.y=f<.5?-Math.PI/2*(1-f*2):0;}
+      const crateOnTruck=new THREE.Vector3(-1.4,1.1,0); tr.g.localToWorld(crateOnTruck);
+      // Stapler
+      const fkPark=new THREE.Vector3(sx+5,0,front+3), pick=new THREE.Vector3(sx,0,park-5.5);
+      let cratePos=crateOnTruck.clone(), forkH=0.2, fpos=fkPark.clone(), frot=-Math.PI/2;
+      if(e<.3){fpos=fkPark;}
+      else if(e<.36){fpos=fkPark.clone().lerp(pick,sm(.3,.36,e)); frot=-Math.PI/2;}
+      else if(e<.42){fpos=pick; forkH=lerp(0.2,1.0,sm(.36,.42,e)); frot=Math.PI/2; if(e>.39) cratePos=null;}
+      else if(e<.62){fpos=pick.clone().lerp(new THREE.Vector3(sx,0,o.z+3.9),sm(.42,.62,e)); forkH=1.0; frot=-Math.PI/2; cratePos=null;}
+      else if(e<.68){fpos=new THREE.Vector3(sx,0,o.z+3.9); forkH=lerp(1.0,0.2,sm(.62,.68,e)); frot=-Math.PI/2; cratePos=e<.66?null:crateFloor.clone();}
+      else {fpos=new THREE.Vector3(sx,0,o.z+3.9).lerp(fkPark,sm(.68,.8,e)); frot=-Math.PI/2; cratePos=crateFloor.clone();}
+      fk.g.position.set(wx(fpos.x),0,fpos.z); fk.g.rotation.y=frot; fk.forks.position.y=forkH;
+      if(!cratePos){const v=new THREE.Vector3(1.9,0.05,0); fk.forks.localToWorld(v); cratePos=v; cratePos.y-=0.05;}
+      o.crate.visible=true; o.crate.position.copy(cratePos); o.crate.rotation.y=0;
+      const un=sm(.8,1,e); o.crate.scale.set(1,Math.max(.05,1-un),1);
+      if(e>=.8) o.crate.position.y=0.4;
+    }
+  }
+  // Scherenbühne
+  const lift=BAU.lift; lift.g.visible=false;
+  if(o&&fs&&fs.rr>=.3&&fs.rr<.85){lift.g.visible=true; const f=fs.rr<.65?sm(.3,.65,fs.rr):sm(.65,.85,fs.rr); const side=fs.rr<.65; lift.g.position.set(o.x+(side?lerp(-o.RW/2+1.6,o.RW/2-1.6,f):Math.sin(time*.4)*2.5),0.4,o.z+(side?-o.RD/2+1.2:0)); lift.setH(side?2.2:3.0);}
+  // Arbeiter-Aufgaben
+  const spots=[]; const S_=(x,z,type,y,face)=>spots.push({x,z,type,y:y||0,face});
+  if(nbAct){ if(bf<.15){S_(-W/2+3,D/2+3.8,'measure',0,0); S_(W/2,-D/2+2,'measure',0,Math.PI); S_(-W/2-6,D/2+2,'clip');}
+    else if(bf<.35){S_(-W/4,D/2+2,'shovel'); S_(W/4,D/2+1,'shovel'); S_(-W/2-3,-D/2,'wave');}
+    else if(bf<.47){for(let i=0;i<4;i++) S_(-W/2+3+i*(W-6)/3,D/2-1,'shovel'); S_(-W/2-2,D/2+4,'wave');}
+    else if(bf<.65){for(let i=0;i<5;i++) S_(-W/2+1+i*(W-2)/4,-D/2+1,'weld',0,Math.PI); S_(W/2+2,-D/2-1,'wave');}
+    else {for(let i=0;i<4;i++) S_(-W/2+3+i*(W-6)/3,-D/2-1,'hammer',2.2+((i%2)*2.2),Math.PI); S_(-W/2+1,0,'hammer',0,-Math.PI/2); S_(W/2-1,0,'hammer',0,Math.PI/2);}
+  }
+  if(o&&fs){const ox=o.x, oz=o.z, rf=fs.rr;
+    if(rf>=0&&rf<1){ if(rf<.2){S_(ox-3,oz-o.RD/2,'measure',0,Math.PI); S_(ox+3,oz+o.RD/2,'measure'); S_(ox,oz+o.RD/2+2,'clip',0,Math.PI);}
+      else if(rf<.3){for(let i=0;i<4;i++){const c=(time*.25+i/4)%1; S_(ox+lerp(-2,2,i/3),oz+lerp(o.RD/2+3,-o.RD/4,c),'carry',0,null);}}
+      else if(rf<.65){const k=Math.floor(sm(.3,.65,rf)*o.panels.length); const pn=o.panels[Math.min(k,o.panels.length-1)]; S_(ox+pn.position.x+0.8,oz+pn.position.z+0.9,'hammer'); S_(ox+pn.position.x-0.8,oz+pn.position.z+0.9,'carry'); S_(ox+2,oz+o.RD/2+2.5,'carry');}
+      else if(rf<.85){S_(lift.g.position.x-o.x+ox,lift.g.position.z,'weld',lift.plat.position.y+0.4); S_(ox-2,oz+2,'clip'); S_(ox+2,oz-1,'hammer');}
+      else {const a=time*.6; S_(ox+Math.cos(a)*2.5,oz+Math.sin(a)*3,'measure'); S_(ox,oz+o.RD/2+1,'clip',0,Math.PI);}
+    }
+    if(fs.ein>=0&&fs.ein<1){S_(ox-2.5,oz+o.RD/2+1.5,'wave'); if(fs.ein>=.8){S_(ox-2,oz,'hammer',0,Math.PI/2); S_(ox+2,oz,'hammer',0,-Math.PI/2);}}
+    if(fs.mon>=0&&fs.mon<1){S_(ox-3.2,oz-1.5,'weld',0,Math.PI/2); S_(ox+3.2,oz-1.5,'hammer',0,-Math.PI/2); S_(ox,oz+1.2,'weld',0,Math.PI); S_(ox-2,oz-3.6,'clip'); S_(ox+2.6,oz+2.5,'carry');}
+    if(fs.val>=0&&fs.val<1){const a=time*.5; S_(ox+Math.cos(a)*3.6,oz-1.5+Math.sin(a)*2.6,'clip'); S_(ox-2.6,oz+1.5,'clip',0,Math.PI); S_(ox+1.6,oz+3.5,'measure',0,Math.PI);}
+    if(fs.run&&t<p.R+S.phases.rampDur+3){S_(ox+2.8,oz+2.2,'clip',0,-Math.PI/2); S_(ox-2.8,oz-1.5,'idle',0,Math.PI/2);}
+  }
+  const contX=G.cont.position.x, contZ=G.cont.position.z;
+  let wwork=0, wd=0;
+  BAU.workers.forEach((w,i)=>{
+    const sp=spots[i]; let tx,tz,mode,face=null,ty=0;
+    if(sp){tx=sp.x;tz=sp.z;mode=sp.type;face=sp.face;ty=sp.y; wwork++;} else {tx=contX-2.4+(i%5)*1.2; tz=contZ+2.2+Math.floor(i/5)*1.3; mode='idle'; face=0;}
+    w.visible=G.cont.visible||!!sp;
+    const dx=tx-w.position.x, dz=tz-w.position.z, dist=Math.hypot(dx,dz);
+    const spd=Math.max(3,dist*1.5)*dt;
+    if(mode==='carry'&&sp&&dist<0.3){ /* carry anim at spot */ }
+    if(dist>0.25){const k=Math.min(1,spd/dist); w.position.x+=dx*k; w.position.z+=dz*k; w.rotation.y=Math.atan2(dx,dz); w.userData.baseY=0; animWorker(w,mode==='carry'?'carry':'walk',time);}
+    else {w.position.x=tx; w.position.z=tz; if(face!=null) w.rotation.y=face; w.userData.baseY=ty; animWorker(w,mode,time); if(mode==='weld') wd++;}
+  });
+  // Funken
+  const sp=BAU.spk, arr=BAU.sparks.geometry.attributes.position.array;
+  const welders=BAU.workers.filter(w=>w.visible&&w.userData.baseY!==undefined).filter((w,i)=>{const s=spots[BAU.workers.indexOf(w)]; return s&&s.type==='weld'&&Math.hypot(s.x-w.position.x,s.z-w.position.z)<0.3;});
+  sp.forEach((q,i)=>{q.l-=dt; if(q.l<=0&&welders.length){const w=welders[i%welders.length]; const v=new THREE.Vector3(0.37,0.95,0.75); w.localToWorld(v); q.x=v.x;q.y=v.y;q.z=v.z; q.vx=(Math.random()-.5)*3; q.vy=Math.random()*3; q.vz=(Math.random()-.5)*3; q.l=0.2+Math.random()*0.4;}
+    if(q.l>0){q.vy-=9.8*dt; q.x+=q.vx*dt; q.y+=q.vy*dt; q.z+=q.vz*dt;} else q.y=-99; arr[i*3]=q.x; arr[i*3+1]=q.y; arr[i*3+2]=q.z;});
+  BAU.sparks.geometry.attributes.position.needsUpdate=true;
+  // Staub
+  BAU.dust.forEach((d,i)=>{const on=ex.g.visible||(bf>=.33&&bf<.47); d.m.visible=on; if(!on) return; d.l+=dt*0.5; if(d.l>1){d.l=0; const s=ex.g.visible?ex.g.position:{x:0,z:0}; d.bx=s.x+(Math.random()-.5)*4; d.bz=s.z+(Math.random()-.5)*4;} d.m.position.set(d.bx||0,0.5+d.l*3,d.bz||0); d.m.scale.setScalar(0.5+d.l*1.5); d.m.material.opacity=0.3*(1-d.l);});
+  // Produkte
+  const prodOn=o&&fs&&fs.run;
+  if(prodOn&&BAU.playing){BAU.pacc=(BAU.pacc||0)+dt*2.5*Math.min(1,rampFactor(Math.max(0,Math.floor(t-p.R)))); while(BAU.pacc>1){BAU.pacc-=1; const m=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4),bMat(0xeb6834)); m.position.set(o.x+1.6,1.3,o.z-1.0); m.castShadow=true; BAU.scene.add(m); BAU.prods.push(m);}}
+  for(let i=BAU.prods.length-1;i>=0;i--){const m=BAU.prods[i]; m.position.z+=dt*2.2; if(!prodOn||m.position.z>o.z+4.3){BAU.scene.remove(m); m.geometry.dispose(); BAU.prods.splice(i,1);}}
+  // Info
+  const info=bauStatus(p,t);
+  $('#bauSub').textContent=info.map(x=>x.t).join(' · ');
+  if(BAU.infoKey!==M+'|'+info.map(x=>x.t+Math.round(x.f*20)).join()){BAU.infoKey=M+'|'+info.map(x=>x.t+Math.round(x.f*20)).join();
+    const cc={neubau:'var(--c-neubau)',reinraum:'var(--c-reinraum)',anlage:'var(--c-anlage)',ramp:'var(--c-ramp)',none:'var(--border)'};
+    $('#bauInfo').innerHTML=info.map(x=>`<div class="binfo" style="border-left-color:${cc[x.cat]}"><b>${esc(x.t)}</b>${x.ph?`<span class="tag">${esc(x.ph)}</span><br>`:''}<span class="hint">${esc(x.d)}</span>${x.cat!=='none'?`<div class="pb"><i style="width:${Math.round(x.f*100)}%;background:${cc[x.cat]}"></i></div>`:''}</div>`).join('');
+    const veh=[ex.g.visible&&'Bagger',dump.g.visible&&'Muldenkipper',mx.g.visible&&'Fahrmischer',cr.g.visible&&'Turmdrehkran',tr.g.visible&&'LKW',fk.g.visible&&'Stapler',lift.g.visible&&'Scherenbühne'].filter(Boolean);
+    $('#bauStats').innerHTML=tr_('Arbeiter im Einsatz',wwork)+tr_('Fahrzeuge / Geräte',veh.length?veh.join(', '):'–')+tr_('Gebäude',bf<0?'geplant':bf<1?`im Bau (${Math.round(bf*100)} %)`:'fertig')+tr_('Reinraum',fs?(fs.rr<0?'–':fs.rr<1?Math.round(fs.rr*100)+' %':'qualifiziert'):'–')+tr_('Ramp-Up-Start',fmtM(p.R));}
+  // Kamera folgt
+  if($('#bauFollow').checked&&o){let tgt; if(nbAct) tgt=new THREE.Vector3(0,3,0); else if(fs.ein>=0&&fs.ein<.75) tgt=new THREE.Vector3(o.x,1.5,D/2+3); else tgt=new THREE.Vector3(o.x,1.5,o.z); const old=BAU.ctl.target.clone(); BAU.ctl.target.lerp(tgt,Math.min(1,dt*1.2)); BAU.cam.position.add(BAU.ctl.target.clone().sub(old));
+    const want=nbAct?Math.max(36,W*0.8):(fs.ein>=0&&fs.ein<.75?30:24);
+    if(!BAU.userZoom){const off=new THREE.Vector3(0.4,0.55,1).setLength(want); const dst=BAU.ctl.target.clone().add(off); BAU.cam.position.lerp(dst,Math.min(1,dt*0.9));}}
+}
+const tr_=(a,b)=>`<div class="r"><span>${a}</span><span style="text-align:right">${b}</span></div>`;
+function renderBauTl(){
+  const p=BAU.p; if(!p) return; const R=bauRange(p); BAU.tl=R; const L=R.b-R.a, X=M=>100*(M-R.a)/L;
+  const seg=(arr,col)=>arr.map(x=>`<div class="sg" style="left:${X(x.s)}%;width:${Math.max(.3,X(x.e)-X(x.s))}%;background:${col}" title="${esc(x.n)}: ${fmtM(x.s)} – ${fmtM(x.e-1)}"></div>`).join('');
+  let h=`<div class="row"><div class="rl">Gebäude</div><div class="rt">${p.nb?seg(p.nb,'var(--c-neubau)'):'<span class="hint" style="font-size:11px;padding-left:6px;line-height:16px">Bestand</span>'}</div></div>`;
+  h+=`<div class="row"><div class="rl">Reinraum</div><div class="rt">${seg(p.rr,'var(--c-reinraum)')}</div></div>`;
+  h+=`<div class="row"><div class="rl">Anlage</div><div class="rt">${seg(p.an,'var(--c-anlage)')}${seg([{n:'Ramp-Up',s:p.R,e:p.R+S.phases.rampDur}],'var(--c-ramp)')}</div></div>`;
+  const yrs=[]; for(let Y=yOf(R.a)+1;Y*12<R.b;Y++) yrs.push(Y);
+  h+=`<div style="position:relative;height:16px;margin-left:78px">${yrs.map(Y=>`<span class="hint" style="position:absolute;left:${X(Y*12)}%;transform:translateX(-50%);font-size:11px">${Y}</span>`).join('')}</div>`;
+  h+=`<div class="cur" style="left:0"></div>`;
+  const el=$('#bauTl'); el.innerHTML=h;
+  const cur=el.querySelector('.cur'); cur.style.left='calc(78px + (100% - 78px) * 0)';
+  BAU.tlEl=el;
+}
+function bauSetCursor(){const el=BAU.tlEl; if(!el||!BAU.tl) return; const f=clamp01((BAU.t-BAU.tl.a)/(BAU.tl.b-BAU.tl.a)); el.querySelector('.cur').style.left=`calc(78px + (100% - 78px) * ${f})`;}
+$('#bauTl').addEventListener('click',e=>{if(!BAU.tl) return; const r=$('#bauTl').getBoundingClientRect(); const f=clamp01((e.clientX-r.left-78)/(r.width-78)); BAU.t=BAU.tl.a+f*(BAU.tl.b-BAU.tl.a);});
+function bauLoop(ts){
+  requestAnimationFrame(bauLoop);
+  if(!$('#p-bau').classList.contains('on')||!BAU.ready){BAU.last=ts; return;}
+  if(BAU.dirty) buildBau(); if(!BAU.p) return;
+  const dt=Math.min(0.1,(ts-(BAU.last||ts))/1000); BAU.last=ts; BAU.time+=dt;
+  if(BAU.playing){BAU.t+=dt*0.2*(+$('#bauSpeed').value); const R=bauRange(BAU.p); if(BAU.t>=R.b){BAU.t=R.b; BAU.playing=false; $('#bauPlay').textContent='▶ Abspielen';}}
+  updateBau(dt); bauSetCursor(); BAU.ctl.update(); BAU.r.render(BAU.scene,BAU.cam);
+}
+$('#bauFollow').onchange=()=>{BAU.userZoom=false;};
+$('#bauSel').onchange=e=>{BAU.sel=+e.target.value; BAU.userZoom=false; BAU.t=-Infinity; BAU.dirty=true; BAU.playing=true; $('#bauPlay').textContent='❚❚ Pause';};
+$('#bauPlay').onclick=()=>{const R=BAU.p?bauRange(BAU.p):null; if(R&&BAU.t>=R.b) BAU.t=R.a; BAU.playing=!BAU.playing; $('#bauPlay').textContent=BAU.playing?'❚❚ Pause':'▶ Abspielen';};
+$('#bauRestart').onclick=()=>{if(BAU.p) BAU.t=bauRange(BAU.p).a; BAU.playing=true; $('#bauPlay').textContent='❚❚ Pause';};
+
+/* =================== Pro: Personal, Wirtschaftlichkeit, Szenarien =================== */
+const eur=v=>{if(v==null||!isFinite(v)) return '–'; const a=Math.abs(v); if(a>=1e6) return nf1.format(v/1e6)+' Mio €'; if(a>=1e4) return nf.format(v/1e3)+' T€'; return nf1.format(v)+' €';};
+function computeRes(){
+  const a=Math.min(P.tMin,P.H0), b=P.H1, n=Math.max(1,b-a), z=()=>new Float64Array(n), rs=S.res;
+  const o={a,b,dir:z(),ind:z(),area:z(),kw:z(),air:z(),water:z(),kwh:z()};
+  P.plants.forEach(p=>{const v=p.v;
+    for(let M=Math.max(a,p.R-rs.hire);M<b;M++){const k=Math.max(0,M-p.R), sh=S.shifts[shiftIdx(k)]; o.dir[M-a]+=(+rs.ops[v]||0)*sh.n*rs.spr; o.ind[M-a]+=+rs.ind||0;}
+    for(let M=Math.max(a,p.rrE);M<b;M++) o.area[M-a]+=+rs.area[v]||0;
+    for(let M=Math.max(a,p.R);M<b;M++){const j=M-a,k=M-p.R, sh=S.shifts[shiftIdx(k)]; o.kw[j]+=+rs.kw[v]||0; o.air[j]+=+rs.air[v]||0; o.water[j]+=+rs.water[v]||0;
+      o.kwh[j]+=(+rs.kw[v]||0)*workDays(M,sh.dpw)*sh.n*sh.h*rampFactor(k);}
+  });
+  const yrs=[]; let prev=0;
+  for(let Y=yOf(a);Y<=yOf(b-1);Y++){let hc=0,d=0,ii=0,ar=0,kw=0,air=0,w=0,kwh=0;
+    for(let M=Math.max(a,Y*12);M<Math.min(b,Y*12+12);M++){const j=M-a, t=o.dir[j]+o.ind[j]; if(t>=hc){hc=t;d=o.dir[j];ii=o.ind[j];} ar=o.area[j];kw=o.kw[j];air=o.air[j];w=o.water[j];kwh+=o.kwh[j];}
+    hc=Math.ceil(hc-1e-9); yrs.push({Y,hc,dir:Math.ceil(d-1e-9),ind:Math.ceil(ii-1e-9),hire:Math.max(0,hc-prev),area:ar,kw,air,water:w,mwh:kwh/1000}); prev=Math.max(prev,hc);}
+  o.years=yrs; o.peak=Math.max(0,...yrs.map(y=>y.hc)); o.hires=yrs.reduce((s,y)=>s+y.hire,0);
+  P.res=o;
+}
+function computeEco(){
+  const R_=P.res, a=R_.a, b=R_.b, n=Math.max(1,b-a), E=S.eco, z=()=>new Float64Array(n);
+  const o={a,b,capex:z(),rev:z(),mat:z(),pers:z(),en:z(),maint:z(),dep:z(),qty:z()};
+  const add=(arr,M,v)=>{if(M>=a&&M<b) arr[M-a]+=v;};
+  const ps=E.pay.map(x=>+x||0), pt=ps.reduce((x,y)=>x+y,0)||1; let tot=0;
+  P.plants.forEach(p=>{const inv=+E.inv[p.v]||0; tot+=inv+(+E.rr||0);
+    add(o.capex,p.an.length?p.an[0].s:p.R,inv*ps[0]/pt); add(o.capex,p.einbau,inv*ps[1]/pt); add(o.capex,p.R,inv*ps[2]/pt);
+    const rl=p.rrE-p.rrS; if(rl>0){for(let M=p.rrS;M<p.rrE;M++) add(o.capex,M,E.rr/rl);} else add(o.capex,p.rrS,+E.rr||0);
+    if(p.nb){const s0=p.nb[0].s,l=Math.max(1,p.rrS-s0); for(let M=s0;M<s0+l;M++) add(o.capex,M,E.nb/l); tot+=+E.nb||0;
+      for(let M=p.rrS;M<p.rrS+E.depB*12;M++) add(o.dep,M,E.nb/(E.depB*12));}
+    for(let M=Math.max(a,p.R);M<b;M++) add(o.maint,M,inv*E.maint/100/12);
+    for(let M=p.R;M<p.R+E.depY*12;M++) add(o.dep,M,(inv+(+E.rr||0))/(E.depY*12));
+  });
+  for(let M=Math.max(a,P.H0);M<b;M++){const q=Math.min(P.C[M-P.LO],P.D[M-P.LO]), j=M-a; o.qty[j]=q; o.rev[j]=q*E.price; o.mat[j]=q*E.mat;}
+  for(let j=0;j<n;j++){o.pers[j]=(R_.dir[j]+R_.ind[j])*E.wage/12; o.en[j]=R_.kwh[j]*E.kwh;}
+  const cf=z(), cum=z(); let c=0,minC=0,minJ=0,pay=null;
+  for(let j=0;j<n;j++){cf[j]=o.rev[j]-o.mat[j]-o.pers[j]-o.en[j]-o.maint[j]-o.capex[j]; c+=cf[j]; cum[j]=c; if(c<minC){minC=c;minJ=j;}}
+  if(minC<0) for(let j=minJ;j<n;j++){ if(cum[j]>=0){pay=a+j;break;} }
+  Object.assign(o,{cf,cum,peakNeg:minC,payback:pay,totInv:tot});
+  const yrs=[]; for(let Y=yOf(a);Y<=yOf(b-1);Y++){const r={Y,capex:0,rev:0,mat:0,pers:0,en:0,maint:0,dep:0,qty:0,cf:0,cum:0};
+    for(let M=Math.max(a,Y*12);M<Math.min(b,Y*12+12);M++){const j=M-a; for(const k of ['capex','rev','mat','pers','en','maint','dep','qty']) r[k]+=o[k][j]; r.cf+=cf[j]; r.cum=cum[j];}
+    r.opex=r.mat+r.pers+r.en+r.maint; r.ebitda=r.rev-r.opex; r.ebit=r.ebitda-r.dep; r.unit=r.qty>0?(r.opex+r.dep)/r.qty:null; yrs.push(r);}
+  o.years=yrs; o.revTot=yrs.reduce((s,y)=>s+y.rev,0); o.cumEnd=cum[n-1]; P.eco=o;
+}
+function computeAllFor(){computePlan(); computeRes(); computeEco();}
+function kpiOf(){
+  const ps=P.plants, ly=P.years[P.years.length-1]; let tD=0; for(let M=P.H0;M<P.H1;M++) tD+=P.D[M-P.LO];
+  return {n:ps.length,nA:ps.filter(p=>p.v==='A').length,nb:P.buildings.filter(b=>b.isNew).length,inv:P.eco.totInv,peak:P.res.peak,payback:P.eco.payback,
+    gap:P.gap,deliv:tD>0?1-P.gap/tD:1,firstOrder:ps.length?Math.min(...ps.map(p=>p.first)):null,firstSop:ps.length?ps[0].R:null,lastD:ly?ly.d:0,cum:P.eco.cumEnd,
+    sops:ps.map((p,i)=>'A'+(i+1)+' '+MON[mOf(p.R)]+' '+String(yOf(p.R)).slice(2)),late:ps.filter(p=>p.late>0).length};
+}
+const SCN={pess:'Pessimistisch',real:'Realistisch',opt:'Optimistisch'};
+function computeScenarios(){const out={}; for(const k of Object.keys(SCN)){S.demand=S.demands[k]; computeAllFor(); out[k]=kpiOf();} S.demand=S.demands[S.scen]; computeAllFor(); P.scen=out;}
+function renderScenTable(sel){
+  const sc=P.scen, ks=Object.keys(SCN);
+  const row=(l,f)=>`<tr><td>${l}</td>${ks.map(k=>`<td ${k===S.scen?'style="font-weight:650"':''}>${f(sc[k])}</td>`).join('')}</tr>`;
+  $(sel).innerHTML=`<thead><tr><th>Kennzahl</th>${ks.map(k=>`<th>${SCN[k]}${k===S.scen?' ●':''}</th>`).join('')}</tr></thead><tbody>`+
+    row(`Absatz ${S.startYear+S.years-1}`,x=>fmt(x.lastD))+row('Anlagen gesamt',x=>`${x.n} <span class="hint">(${x.nA}× A, ${x.n-x.nA}× B)</span>`)+row('Neubauten',x=>x.nb)+
+    row('Investition gesamt',x=>eur(x.inv))+row('Erste Bestellung',x=>x.firstOrder!=null?fmtM(x.firstOrder):'–')+row('Erster SOP',x=>x.firstSop!=null?fmtM(x.firstSop):'–')+
+    row('Peak Personal',x=>x.peak+' MA')+row('Amortisation',x=>x.payback!=null?fmtM(x.payback):'<span class="hint">nicht im Horizont</span>')+
+    row('Cashflow kum. Ende',x=>`<span class="${x.cum<0?'neg':''}">${eur(x.cum)}</span>`)+row('Lieferfähigkeit',x=>`<span class="${x.deliv<0.999?'neg':'pos'}">${nf1.format(x.deliv*100)} %</span>`)+
+    `<tr><td>SOP-Termine</td>${ks.map(k=>`<td class="l" style="white-space:normal;min-width:180px;font-size:12px">${sc[k].sops.join(' · ')||'–'}</td>`).join('')}</tr></tbody>`;
+}
+/* --- Charts --- */
+function renderCashChart(sel){
+  const el=$(sel); if(!el) return; const yrs=P.eco.years, n=yrs.length, W=900,H=260,ml=70,mr=12,mt=14,mb=28;
+  const vals=yrs.flatMap(y=>[y.cf,y.cum,0]); const vmax=Math.max(1,...vals), vmin=Math.min(0,...vals); const raw=(vmax-vmin)/4, e10=Math.pow(10,Math.floor(Math.log10(raw))); const stp=[1,2,2.5,5,10].map(m=>m*e10).find(x=>x>=raw); const mx=Math.ceil(vmax/stp)*stp, mn=Math.floor(vmin/stp)*stp; const nt=Math.round((mx-mn)/stp);
+  const bw=(W-ml-mr)/n, x=i=>ml+bw*i, y=v=>mt+(H-mt-mb)*(mx-v)/(mx-mn);
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cashflow">`;
+  for(let i=0;i<=nt;i++){const v=mn+stp*i; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${ml-6}" y="${y(v)+4}" text-anchor="end">${Math.abs(v)>=1e6?nf.format(v/1e6)+' Mio':fmtK(v)}</text>`;}
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-2)" stroke-width="1"/>`;
+  const step=Math.max(1,Math.ceil(n/14));
+  yrs.forEach((r,i)=>{const bx=x(i)+bw*.2, w=bw*.6, y0=y(0), y1=y(r.cf); g+=`<rect x="${bx}" y="${Math.min(y0,y1)}" width="${w}" height="${Math.max(1,Math.abs(y1-y0))}" rx="2" fill="${r.cf>=0?'var(--s-cap)':'var(--s-dem)'}"/>`;
+    if(i%step===0) g+=`<text class="ax" x="${x(i)+bw/2}" y="${H-8}" text-anchor="middle">${r.Y}</text>`;});
+  g+=`<path d="${yrs.map((r,i)=>(i?'L':'M')+(x(i)+bw/2)+','+y(r.cum)).join('')}" fill="none" stroke="var(--text-2)" stroke-width="2"/>`;
+  yrs.forEach((r,i)=>g+=`<circle cx="${x(i)+bw/2}" cy="${y(r.cum)}" r="3.5" fill="var(--text-2)" stroke="var(--surface)" stroke-width="2"/>`);
+  if(P.eco.payback!=null){const px=ml+bw*((P.eco.payback+0.5)/12-yrs[0].Y); g+=`<line x1="${px}" x2="${px}" y1="${mt}" y2="${H-mb}" stroke="var(--good)" stroke-width="2" stroke-dasharray="4 3"/><text x="${px>W-170?px-4:px+4}" y="${mt+10}" font-size="11" fill="var(--good)" text-anchor="${px>W-170?'end':'start'}">Amortisation ${fmtM(P.eco.payback)}</text>`;}
+  yrs.forEach((r,i)=>g+=`<rect x="${x(i)}" y="${mt}" width="${bw}" height="${H-mt-mb}" fill="transparent" data-i="${i}"/>`);
+  el.innerHTML=g+'</svg>';
+  el.querySelectorAll('rect[data-i]').forEach(rc=>{const r=yrs[+rc.dataset.i]; rc.onmousemove=e=>showTip(e,`<div class="tt">${r.Y}</div>${tr('Investitionen',eur(-r.capex))}${tr('Umsatz',eur(r.rev))}${tr('Betriebskosten',eur(-r.opex))}${tr('Cashflow',eur(r.cf))}${tr('kumuliert',eur(r.cum))}`); rc.onmouseleave=hideTip;});
+}
+function renderHcChart(sel){
+  const el=$(sel); if(!el) return; const o=P.res, n=o.b-o.a, W=900,H=220,ml=50,mr=12,mt=12,mb=26;
+  const v=[...Array(n)].map((_,j)=>o.dir[j]+o.ind[j]); const mx=niceMax(Math.max(1,...v)*1.05);
+  const x=j=>ml+(W-ml-mr)*j/Math.max(1,n-1), y=t=>mt+(H-mt-mb)*(1-t/mx);
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Personalbedarf">`;
+  for(let i=0;i<=4;i++){const t=mx*i/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${ml-6}" y="${y(t)+4}" text-anchor="end">${nf.format(t)}</text>`;}
+  const st=Math.max(1,Math.ceil(n/12/12)); for(let Y=yOf(o.a)+1;Y*12<o.b;Y++) if((Y-yOf(o.a))%st===0) g+=`<text class="ax" x="${x(Y*12-o.a)}" y="${H-8}" text-anchor="middle">${Y}</text>`;
+  const d=v.map((t,j)=>(j?'L':'M')+x(j).toFixed(1)+','+y(t).toFixed(1)).join('');
+  g+=`<path d="${d}L${x(n-1)},${y(0)}L${x(0)},${y(0)}Z" fill="var(--s-cap)" opacity=".18"/><path d="${d}" fill="none" stroke="var(--s-cap)" stroke-width="2"/>`;
+  g+=`<line id="hcCur" x1="-10" x2="-10" y1="${mt}" y2="${H-mb}" stroke="var(--text-2)"/><rect x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent" id="hcHit"/>`;
+  el.innerHTML=g+'</svg>';
+  const hit=el.querySelector('#hcHit'), cur=el.querySelector('#hcCur');
+  hit.onmousemove=e=>{const r=hit.getBoundingClientRect(); const j=Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left)/r.width*(n-1)))); cur.setAttribute('x1',x(j)); cur.setAttribute('x2',x(j));
+    showTip(e,`<div class="tt">${fmtM(o.a+j)}</div>${tr('Direkt (Bediener)',nf1.format(o.dir[j]))}${tr('Indirekt',nf1.format(o.ind[j]))}${tr('Gesamt',nf1.format(v[j]))}`);};
+  hit.onmouseleave=()=>{hideTip(); cur.setAttribute('x1',-10); cur.setAttribute('x2',-10);};
+}
+/* --- Render Seiten --- */
+function renderEco(){
+  const o=P.eco, ly=o.years.filter(y=>y.qty>0).pop();
+  $('#eKpis').innerHTML=[['Investition gesamt',eur(o.totInv)],['Max. Finanzierungsbedarf',eur(o.peakNeg)],['Amortisation',o.payback!=null?fmtM(o.payback):'nicht im Horizont'],['Umsatz gesamt',eur(o.revTot)],['Stückkosten '+(ly?ly.Y:''),ly&&ly.unit!=null?nf1.format(ly.unit)+' € ('+(ly.unit<S.eco.price?'<':'≥')+' Preis)':'–'],['Cashflow kum. Ende',eur(o.cumEnd)]]
+    .map(([t,v])=>`<div class="kpi"><div class="v">${v}</div><div class="t">${t}</div></div>`).join('');
+  renderCashChart('#eChart');
+  const Y=o.years, row=(l,f,cls)=>`<tr class="${cls||''}"><td>${l}</td>${Y.map(r=>{const v=f(r); return `<td class="${v<-0.5&&cls==='sum'?'neg':''}">${v==null?'–':fmt(v)}</td>`;}).join('')}</tr>`;
+  $('#tEco').innerHTML=`<thead><tr><th>T€ / Jahr</th>${Y.map(r=>`<th>${r.Y}</th>`).join('')}</tr></thead><tbody>`+
+    row('Investitionen',r=>-r.capex/1e3)+row('Umsatz',r=>r.rev/1e3)+row('Material',r=>-r.mat/1e3,'sub')+row('Personal',r=>-r.pers/1e3,'sub')+row('Energie',r=>-r.en/1e3,'sub')+row('Wartung',r=>-r.maint/1e3,'sub')+
+    row('EBITDA',r=>r.ebitda/1e3,'sum')+row('Abschreibung',r=>-r.dep/1e3,'sub')+row('EBIT',r=>r.ebit/1e3,'sum')+row('Cashflow',r=>r.cf/1e3,'sum')+row('Cashflow kumuliert',r=>r.cum/1e3,'sum')+
+    `<tr><td>Geliefert (Stk)</td>${Y.map(r=>`<td>${r.qty>0?fmt(r.qty):'·'}</td>`).join('')}</tr>`+
+    `<tr class="sum"><td>Stückkosten (€/Stk)</td>${Y.map(r=>`<td class="${r.unit!=null&&r.unit>S.eco.price?'neg':''}">${r.unit!=null?nf1.format(r.unit):'·'}</td>`).join('')}</tr></tbody>`;
+}
+function renderRes(){
+  const rs=S.res, o=P.res, ly=o.years[o.years.length-1]||{};
+  let h='<thead><tr><th>je Anlage</th><th>A</th><th>B</th></tr></thead><tbody>';
+  const inp=(k,step,w)=>['A','B'].map(v=>`<td><input type="number" data-k="res.${k}.${v}" min="0" step="${step}" style="width:${w||80}px"></td>`).join('');
+  h+=`<tr><td>Reinraumfläche (m²)</td>${inp('area',10)}</tr><tr><td>Reinraumklasse</td>${['A','B'].map(v=>`<td><select data-k="res.iso.${v}">${['ISO 5','ISO 6','ISO 7','ISO 8'].map(c=>`<option ${rs.iso[v]===c?'selected':''}>${c}</option>`).join('')}</select></td>`).join('')}</tr>`;
+  h+=`<tr><td>Anschlussleistung (kW)</td>${inp('kw',10)}</tr><tr><td>Druckluft (Nm³/h)</td>${inp('air',5)}</tr><tr><td>Reinstwasser (l/h)</td>${inp('water',10)}</tr></tbody>`;
+  $('#tResIn').innerHTML=h; bindInputs($('#tResIn'));
+  $('#rKpis').innerHTML=[['Peak Personal',o.peak+' MA'],['Neueinstellungen gesamt',o.hires+' MA'],['Reinraumfläche Endausbau',fmt(ly.area||0)+' m²'],['Anschlussleistung Endausbau',fmt(ly.kw||0)+' kW'],['Stromverbrauch '+(ly.Y||''),fmt(ly.mwh||0)+' MWh']]
+    .map(([t,v])=>`<div class="kpi"><div class="v">${v}</div><div class="t">${t}</div></div>`).join('');
+  renderHcChart('#rChart');
+  const Y=o.years, row=(l,f,cls)=>`<tr class="${cls||''}"><td>${l}</td>${Y.map(r=>`<td>${f(r)}</td>`).join('')}</tr>`;
+  $('#tRes').innerHTML=`<thead><tr><th>Jahr</th>${Y.map(r=>`<th>${r.Y}</th>`).join('')}</tr></thead><tbody>`+
+    row('Bediener (direkt, max.)',r=>r.dir||'·','sub')+row('Indirekte MA (max.)',r=>r.ind||'·','sub')+row('Mitarbeiter gesamt',r=>r.hc||'·','sum')+row('Neueinstellungen',r=>r.hire?'+'+r.hire:'·')+
+    row('Reinraumfläche (m²)',r=>r.area?fmt(r.area):'·')+row('Anschlussleistung (kW)',r=>r.kw?fmt(r.kw):'·')+row('Druckluft (Nm³/h)',r=>r.air?fmt(r.air):'·')+row('Reinstwasser (l/h)',r=>r.water?fmt(r.water):'·')+row('Stromverbrauch (MWh)',r=>r.mwh?fmt(r.mwh):'·')+'</tbody>';
+  const rf=1+(+$('#bldRes').value||0)/100;
+  $('#tBld').innerHTML='<thead><tr><th>Gebäude</th><th class="l">Anlagen</th><th>Fertig ab</th><th>Reinraumfläche m²</th><th class="l">Klassen</th><th>Leistung kW</th><th>Druckluft Nm³/h</th><th>Reinstwasser l/h</th></tr></thead><tbody>'+
+    P.buildings.map(b=>{const ps=b.plants.map(i=>P.plants[i]); const sum=k=>ps.reduce((s,p)=>s+(+rs[k][p.v]||0),0)*rf;
+      return `<tr><td><b>${bName(b)}</b>${b.auto?' <span class="chip nb">auto</span>':''}</td><td class="l">${ps.map(p=>'A'+(P.plants.indexOf(p)+1)+'·'+p.v).join(', ')}</td><td>${b.isNew?fmtM(b.e):'Bestand'}</td><td>${fmt(sum('area'))}</td><td class="l">${[...new Set(ps.map(p=>rs.iso[p.v]))].join(', ')}</td><td>${fmt(sum('kw'))}</td><td>${fmt(sum('air'))}</td><td>${fmt(sum('water'))}</td></tr>`;}).join('')+'</tbody>';
+}
+function renderDash(){
+  const k=P.scen[S.scen], o=P.eco;
+  $('#dTitle').textContent=S.brand.project||'Übersicht';
+  $('#dLead').textContent=`${S.brand.company?S.brand.company+' · ':''}Szenario ${SCN[S.scen]} · Planungsstand ${fmtM(ym2M(S.planStart))} · Horizont ${S.startYear}–${S.startYear+S.years-1}`;
+  $('#dKpis').innerHTML=[[k.n,`Anlagen (${k.nA}× A, ${k.n-k.nA}× B)`],[k.nb,'Neubauten'],[eur(k.inv),'Investition gesamt'],[k.firstOrder!=null?fmtM(k.firstOrder):'–','Erste Bestellung / Baubeginn'],[k.firstSop!=null?fmtM(k.firstSop):'–','Erster SOP'],[k.peak+' MA','Peak Personal'],[k.payback!=null?fmtM(k.payback):'–','Amortisation'],[`<span class="${k.deliv<0.999?'neg':'pos'}">${nf1.format(k.deliv*100)} %</span>`,'Lieferfähigkeit']]
+    .map(([v,t])=>`<div class="kpi"><div class="v">${v}</div><div class="t">${t}</div></div>`).join('');
+  const al=[];
+  if(P.deficit.length) al.push({lvl:'crit',t:`Lieferlücke ${fmt(P.gap)} Stk in ${P.deficit.map(y=>y.Y).join(', ')} – Vorlaufzeiten bzw. Anlagenanzahl reichen nicht.`});
+  P.schedWarn.slice(0,5).forEach(w=>al.push(w)); if(P.schedWarn.length>5) al.push({lvl:'warn',t:`… ${P.schedWarn.length-5} weitere Hinweise im Zeitplan.`});
+  if(o.payback==null) al.push({lvl:'warn',t:'Amortisation liegt nicht im Planungshorizont – Preis, Kosten oder Horizont prüfen.'});
+  const tight=P.plants.filter(p=>p.buffer>=0&&p.buffer<3); if(tight.length) al.push({lvl:'warn',t:`Wenig Puffer (< 3 Monate bis Projektstart): ${tight.map(p=>p.name).join(', ')}.`});
+  if(!al.length) al.push({lvl:'ok',t:'Plan ist lieferfähig, alle Vorlaufzeiten einhaltbar, Amortisation im Horizont.'});
+  $('#dAlerts').innerHTML=al.map(a=>`<div class="alert ${a.lvl}"><b>${a.lvl==='crit'?'⛔ Kritisch':a.lvl==='warn'?'⚠ Hinweis':'✓ OK'}</b><span>${esc(a.t)}</span></div>`).join('');
+  renderYearChart('#dChart'); renderCashChart('#dCash');
+  $('#dPlants').innerHTML='<thead><tr><th>Anlage</th><th class="c">Var.</th><th class="l">Gebäude</th><th>Start Vorlauf</th><th>Bestellung</th><th>Reinraumbau</th><th>SOP</th><th>100 % ab</th><th>Invest</th><th class="l">Kritische Kette</th><th>Puffer</th></tr></thead><tbody>'+
+    P.plants.map((p,i)=>`<tr><td><b>Anlage ${i+1}</b></td><td class="c">${p.v}</td><td class="l">${bName(P.buildings[p.b])}</td><td>${fmtM(p.first)}</td><td>${p.an.length?fmtM(p.an[0].s):'–'}</td><td>${fmtM(p.rrS)}</td><td><b>${fmtM(p.R)}</b></td><td>${fmtM(p.R+24)}</td><td>${eur((+S.eco.inv[p.v]||0)+(+S.eco.rr||0)+(p.nb?+S.eco.nb||0:0))}</td><td class="l">${p.crit==='room'?(p.nb?'Neubau + Reinraum':'Reinraum'):'Anlagenbeschaffung'}</td><td class="${p.buffer<0?'neg':p.buffer<3?'':'pos'}">${p.buffer} Mon.</td></tr>`).join('')+'</tbody>';
+  renderScenTable('#dScen');
+}
+/* --- Branding --- */
+function applyBrand(){
+  const b=S.brand; $('#brandTitle').textContent=b.project||'Anlagenplanung Pro'; $('#brandSub').textContent=(b.company?b.company+' · ':'')+'Anlagen- & Kapazitätsplanung';
+  const lg=$('#brandLogo'); if(b.logo){lg.src=b.logo; lg.style.display='block';} else lg.style.display='none';
+  if(b.accent){document.documentElement.style.setProperty('--accent',b.accent);} else document.documentElement.style.removeProperty('--accent');
+  $('#accentIn').value=b.accent||'#2a78d6';
+}
+$('#logoFile').onchange=e=>{const f=e.target.files[0]; if(!f) return; if(f.size>400*1024){alert('Bitte ein Logo unter 400 KB wählen.'); return;} const r=new FileReader(); r.onload=()=>{S.brand.logo=r.result; changed();}; r.readAsDataURL(f);};
+$('#logoDel').onclick=()=>{S.brand.logo=''; $('#logoFile').value=''; changed();};
+$('#accentIn').oninput=e=>{S.brand.accent=e.target.value; applyBrand();}; $('#accentIn').onchange=()=>changed();
+$('#accentReset').onclick=()=>{S.brand.accent=''; changed();};
+/* --- Szenarien UI --- */
+$('#scenSel').onchange=e=>{S.scen=e.target.value; S.demand=S.demands[S.scen]; selYear=null; changed();};
+$('#scenDerive').onclick=()=>{if(S.scen==='real'){alert('Bitte zuerst „Pessimistisch“ oder „Optimistisch“ als Szenario wählen.'); return;} const f=1+(+$('#scenPct').value||0)/100;
+  for(let Y=S.startYear;Y<S.startYear+S.years;Y++) S.demands[S.scen][Y]=Math.round((+S.demands.real[Y]||0)*f/1000)*1000; changed();};
+$('#bldRes').onchange=()=>renderRes();
+/* --- Projekte --- */
+const LSP=LS+'.projects';
+function projList(){try{return JSON.parse(localStorage.getItem(LSP)||'{}')||{};}catch(e){return {};}}
+function projStore(o){try{localStorage.setItem(LSP,JSON.stringify(o)); return true;}catch(e){alert('Speichern im Browser nicht möglich (Speicher voll oder blockiert). Bitte „Export JSON“ nutzen.'); return false;}}
+function renderProj(){
+  const L=projList(), ks=Object.keys(L);
+  $('#tProj').innerHTML=ks.length?'<thead><tr><th>Planstand</th><th>Gespeichert</th><th class="l">Szenario</th><th>Anlagen</th><th>Neubauten</th><th>Investition</th><th>Erster SOP</th><th>Peak MA</th><th>Amortisation</th><th>Lieferfähigkeit</th><th></th></tr></thead><tbody>'+
+    ks.map(n=>{const p=L[n], k=p.kpi||{}; return `<tr><td><b>${esc(n)}</b></td><td>${new Date(p.saved).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}</td><td class="l">${SCN[p.state.scen]||''}</td><td>${k.n??'–'}</td><td>${k.nb??'–'}</td><td>${eur(k.inv)}</td><td>${k.firstSop!=null?fmtM(k.firstSop):'–'}</td><td>${k.peak??'–'}</td><td>${k.payback!=null?fmtM(k.payback):'–'}</td><td>${k.deliv!=null?nf1.format(k.deliv*100)+' %':'–'}</td>
+      <td><button class="btn sm" data-pl="${esc(n)}">Laden</button> <button class="btn sm" data-pd="${esc(n)}">Löschen</button></td></tr>`;}).join('')+'</tbody>'
+    :'<tbody><tr><td class="hint">Noch keine Planstände gespeichert.</td></tr></tbody>';
+  $('#tProj').querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{const p=projList()[b.dataset.pl]; if(p&&confirm(`„${b.dataset.pl}“ laden? Nicht gespeicherte Änderungen gehen verloren.`)){S=fromJSON(p.state); ensureCfg(); selYear=null; changed();}});
+  $('#tProj').querySelectorAll('[data-pd]').forEach(b=>b.onclick=()=>{if(confirm(`„${b.dataset.pd}“ löschen?`)){const L2=projList(); delete L2[b.dataset.pd]; projStore(L2); renderProj();}});
+}
+$('#projSave').onclick=()=>{const n=($('#projName').value||'').trim()||S.brand.project||'Planstand'; const L=projList(); if(L[n]&&!confirm(`„${n}“ überschreiben?`)) return;
+  const st=JSON.parse(JSON.stringify(S)); delete st.demand; L[n]={saved:new Date().toISOString(),state:st,kpi:P.scen[S.scen]}; if(projStore(L)){$('#projName').value=''; renderProj();}};
+/* --- Excel --- */
+const xlsOk=()=>typeof XLSX!=='undefined';
+const ymS=M=>yOf(M)+'-'+String(mOf(M)+1).padStart(2,'0');
+function sheetsData(){
+  const yrs=[]; for(let Y=S.startYear;Y<S.startYear+S.years;Y++) yrs.push(Y);
+  const sh={};
+  sh['Absatz']=[['Jahr','Pessimistisch','Realistisch','Optimistisch'],...yrs.map(Y=>[Y,+S.demands.pess[Y]||0,+S.demands.real[Y]||0,+S.demands.opt[Y]||0])];
+  sh['Jahresübersicht']=[['Jahr','Absatz','Kapazität','Saldo','Saldo kumuliert','Auslastung %','Anlagen aktiv','Ramp-Up-Starts'],...P.years.map(y=>[y.Y,Math.round(y.d),Math.round(y.c),Math.round(y.bal),Math.round(y.cum),y.c>0?Math.round(y.d/y.c*1000)/10:'',y.active,y.starts.map(p=>'Anlage '+(P.plants.indexOf(p)+1)+' ('+MON[mOf(p.start)]+')').join(', ')])];
+  sh['Anlagen']=[['Anlage','Variante','Gebäude','Start Vorlauf','Bestellung','Reinraum Start','Einbau','Validierung','SOP','100 % ab','Invest €','Kritische Kette','Puffer bis heute (Mon.)'],...P.plants.map((p,i)=>['Anlage '+(i+1),p.v,bName(P.buildings[p.b]),ymS(p.first),p.an.length?ymS(p.an[0].s):'',ymS(p.rrS),ymS(p.einbau),ymS(p.val),ymS(p.R),ymS(p.R+24),(+S.eco.inv[p.v]||0)+(+S.eco.rr||0)+(p.nb?+S.eco.nb||0:0),p.crit==='room'?'Reinraum/Gebäude':'Anlagenbeschaffung',p.buffer])];
+  const z=[['Anlage','Variante','Gruppe','Vorgang','Start','Ende','Dauer (Monate)']];
+  P.plants.forEach((p,i)=>{const add=(g,a)=>a&&a.forEach(x=>z.push(['Anlage '+(i+1),p.v,g,x.n,ymS(x.s),ymS(x.e-1),x.e-x.s])); add('Neubau',p.nb); add('Reinraum',p.rr); add('Anlage',p.an); z.push(['Anlage '+(i+1),p.v,'Ramp-Up','Ramp-Up',ymS(p.R),ymS(p.R+S.phases.rampDur-1),S.phases.rampDur]);});
+  sh['Zeitplan']=z;
+  sh['Wirtschaftlichkeit']=[['Jahr','Investitionen €','Umsatz €','Material €','Personal €','Energie €','Wartung €','EBITDA €','Abschreibung €','EBIT €','Cashflow €','Cashflow kum. €','Geliefert Stk','Stückkosten €'],...P.eco.years.map(r=>[r.Y,...[r.capex,r.rev,r.mat,r.pers,r.en,r.maint,r.ebitda,r.dep,r.ebit,r.cf,r.cum,r.qty].map(Math.round),r.unit!=null?Math.round(r.unit*100)/100:''])];
+  sh['Personal & Ressourcen']=[['Jahr','Bediener direkt','Indirekt','MA gesamt','Neueinstellungen','Reinraumfläche m²','Anschlussleistung kW','Druckluft Nm³/h','Reinstwasser l/h','Strom MWh'],...P.res.years.map(r=>[r.Y,r.dir,r.ind,r.hc,r.hire,Math.round(r.area),Math.round(r.kw),Math.round(r.air),Math.round(r.water),Math.round(r.mwh)])];
+  const sc=P.scen; sh['Szenarien']=[['Kennzahl',...Object.values(SCN)],['Anlagen',...Object.keys(SCN).map(k=>sc[k].n)],['Neubauten',...Object.keys(SCN).map(k=>sc[k].nb)],['Investition €',...Object.keys(SCN).map(k=>Math.round(sc[k].inv))],['Peak MA',...Object.keys(SCN).map(k=>sc[k].peak)],['Amortisation',...Object.keys(SCN).map(k=>sc[k].payback!=null?ymS(sc[k].payback):'–')],['Lieferfähigkeit %',...Object.keys(SCN).map(k=>Math.round(sc[k].deliv*1000)/10)],['SOP-Termine',...Object.keys(SCN).map(k=>sc[k].sops.join(', '))]];
+  return sh;
+}
+function dl(name,blob){const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();}
+function writeBook(sh,name){
+  if(!xlsOk()){const k=Object.keys(sh)[0]; dl(name.replace('.xlsx','.csv'),new Blob(['﻿'+sh[k].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n')],{type:'text/csv'})); $('#xlsMsg').textContent='Excel-Bibliothek nicht geladen (offline?) – stattdessen CSV der ersten Tabelle exportiert.'; return;}
+  const wb=XLSX.utils.book_new(); for(const [k,rows] of Object.entries(sh)){const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=rows[0].map((_,i)=>({wch:Math.min(40,Math.max(10,...rows.map(r=>String(r[i]??'').length+2)))})); XLSX.utils.book_append_sheet(wb,ws,k.slice(0,31));}
+  XLSX.writeFile(wb,name);
+}
+$('#xlsExport').onclick=()=>writeBook(sheetsData(),'anlagenplanung.xlsx');
+$('#xlsTpl').onclick=()=>writeBook({Absatz:sheetsData().Absatz},'absatz-vorlage.xlsx');
+$('#xlsImport').onclick=()=>$('#xlsIn').click();
+function importRows(rows){
+  const num=v=>{if(typeof v==='number') return v; const s=String(v??'').trim().replace(/\s/g,''); if(!s) return NaN; return parseFloat(/,\d{1,2}$/.test(s)?s.replace(/\./g,'').replace(',','.'):s.replace(/[.,](?=\d{3}(\D|$))/g,''));};
+  let hi=rows.findIndex(r=>r.some(c=>/jahr/i.test(String(c))));
+  const head=hi>=0?rows[hi].map(c=>String(c)):[]; const map={};
+  head.forEach((c,i)=>{if(/pess/i.test(c)) map.pess=i; else if(/real/i.test(c)) map.real=i; else if(/opt/i.test(c)) map.opt=i;});
+  if(!Object.keys(map).length) map[S.scen]=1;
+  let n=0,yMin=Infinity,yMax=-Infinity;
+  rows.slice(hi+1).forEach(r=>{const Y=parseInt(r[0]); if(!(Y>=1900&&Y<=2200)) return; for(const [k,i] of Object.entries(map)){const v=num(r[i]); if(isFinite(v)){S.demands[k][Y]=Math.max(0,Math.round(v)); n++;}} yMin=Math.min(yMin,Y); yMax=Math.max(yMax,Y);});
+  if(!n){alert('Keine Absatzwerte gefunden. Spalte A muss das Jahr enthalten.'); return;}
+  S.startYear=yMin; S.years=Math.min(30,yMax-yMin+1); S.demand=S.demands[S.scen];
+  $('#xlsMsg').textContent=`${n} Werte übernommen (${yMin}–${yMax}, Szenario: ${Object.keys(map).map(k=>SCN[k]).join(', ')}).`; changed();
+}
+$('#xlsIn').onchange=e=>{const f=e.target.files[0]; if(!f) return; e.target.value='';
+  if(/\.csv$/i.test(f.name)||!xlsOk()){f.text().then(t=>{const sep=t.split(';').length>t.split(',').length?';':','; importRows(t.replace(/^﻿/,'').split(/\r?\n/).map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,''))));}); return;}
+  f.arrayBuffer().then(buf=>{const wb=XLSX.read(buf,{type:'array'}); const ws=wb.Sheets['Absatz']||wb.Sheets[wb.SheetNames[0]]; importRows(XLSX.utils.sheet_to_json(ws,{header:1,raw:true}));}).catch(()=>alert('Datei konnte nicht gelesen werden.'));};
+/* --- PDF --- */
+function printReport(){document.querySelectorAll('section.page').forEach(s=>s.dataset.wasOn=s.classList.contains('on')?'1':''); window.print();}
+$('#bPdf').onclick=printReport; $('#bPdf2').onclick=printReport;
+/* --- Simulation → Baustelle --- */
+function openBau(idx){BAU.sel=idx; BAU.t=-Infinity; BAU.dirty=true; BAU.userZoom=false; BAU.playing=true; $('#bauPlay').textContent='❚❚ Pause'; document.querySelector('#tabs button[data-p="bau"]').click();}
+function simPick(){
+  const el=SIM.r.domElement; let pd=null;
+  el.addEventListener('pointerdown',e=>{pd=[e.clientX,e.clientY];});
+  el.addEventListener('pointerup',e=>{if(!pd||Math.hypot(e.clientX-pd[0],e.clientY-pd[1])>5) return; const rc=el.getBoundingClientRect();
+    const v=new THREE.Vector2((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1); const ray=new THREE.Raycaster(); ray.setFromCamera(v,SIM.cam);
+    const hits=ray.intersectObjects(SIM.objs.map(o=>o.g),true).filter(h=>{let x=h.object; while(x){if(!x.visible) return false; x=x.parent;} return true;}); if(!hits.length) return;
+    const o=SIM.objs.find(o=>{let x=hits[0].object; while(x){if(x===o.g) return true; x=x.parent;} return false;}); if(o) openBau(o.idx);});
+}
+$('#simOrbit').onchange=e=>{if(SIM.ready){SIM.ctl.autoRotate=e.target.checked; SIM.ctl.autoRotateSpeed=0.7;}};
+
+/* =================== Bindings =================== */
+function getPath(o,p){return p.split('.').reduce((a,k)=>a==null?a:a[k],o);}
+function setPath(o,p,v){const ks=p.split('.'); let a=o; for(let i=0;i<ks.length-1;i++) a=a[ks[i]]; a[ks[ks.length-1]]=v;}
+function bindInputs(root){
+  root.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k; const v=getPath(S,k);
+    if(el.type==='checkbox') el.checked=!!v; else if(document.activeElement!==el) el.value=v;
+    el.onchange=()=>{let val=el.type==='checkbox'?el.checked:el.value;
+      if(el.type==='number'||el.dataset.num){val=parseFloat(val); if(!isFinite(val)) val=0; if(el.min!==''&&val<+el.min) val=+el.min; if(el.max!==''&&val>+el.max) val=+el.max;}
+      setPath(S,k,val); if(k==='logic.max') ensureCfg(); changed();};});
+  root.querySelectorAll('[data-dem]').forEach(el=>el.onchange=()=>{S.demand[el.dataset.dem]=Math.max(0,parseFloat(el.value)||0); changed();});
+  root.querySelectorAll('[data-room]').forEach(el=>el.onchange=()=>{S.phases.anlage.forEach((p,j)=>p.room=j===+el.dataset.room); changed();});
+  root.querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{const [k,j]=el.dataset.del.split('.'); S.phases[k].splice(+j,1); changed();});
+  root.querySelectorAll('[data-add]').forEach(el=>el.onclick=()=>{S.phases[el.dataset.add].push({n:'Neuer Vorgang',d:1}); changed();});
+}
+$('#planStart').onchange=e=>{if(e.target.value){S.planStart=e.target.value; changed();}};
+$('#refYear').onchange=e=>{S.refYear=Math.round(+e.target.value)||S.refYear; changed();};
+function renderAll(){computeScenarios(); renderGrund(); bindInputs(document); renderAbsatz(); renderScenTable('#tScen'); renderZeit(); renderEco(); renderRes(); renderDash(); renderProj(); applyBrand(); $('#scenSel').value=S.scen; SIM.dirty=true; BAU.dirty=true;}
+let chT=null;
+function changed(){save(); clearTimeout(chT); chT=setTimeout(renderAll,30);}
+
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('section.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+b.dataset.p));
+  try{localStorage.setItem(LS+'.tab',b.dataset.p);}catch(e){}
+  if(b.dataset.p==='sim'){ if(initSim()){resizeSim(); SIM.dirty=true;} }
+  if(b.dataset.p==='bau'){ if(initBau()){resizeBau(); BAU.dirty=true;} }
+  window.scrollTo({top:0});
+});
+$('#bReset').onclick=()=>{if(confirm('Alle Eingaben auf Beispielwerte zurücksetzen?')){S=fromJSON({}); ensureCfg(); selYear=null; changed();}};
+$('#bExport').onclick=()=>{const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'})); a.download='anlagenplanung.json'; a.click();};
+$('#bImport').onclick=()=>$('#fImport').click();
+$('#fImport').onchange=e=>{const f=e.target.files[0]; if(!f) return; f.text().then(t=>{try{S=fromJSON(JSON.parse(t)); ensureCfg(); changed();}catch(err){alert('Datei konnte nicht gelesen werden.');}});};
+$('#bCsv').onclick=()=>{const rows=[['Anlage','Variante','Gruppe','Vorgang','Start','Ende','Dauer (Monate)']];
+  const ym=M=>yOf(M)+'-'+String(mOf(M)+1).padStart(2,'0');
+  P.plants.forEach((p,i)=>{const add=(g,a)=>a&&a.forEach(x=>rows.push(['Anlage '+(i+1),p.v,g,x.n,ym(x.s),ym(x.e-1),x.e-x.s]));
+    add('Neubau',p.nb); add('Reinraum',p.rr); add('Anlage',p.an); rows.push(['Anlage '+(i+1),p.v,'Ramp-Up','Ramp-Up',ym(p.R),ym(p.R+S.phases.rampDur-1),S.phases.rampDur]);});
+  const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='zeitplan.csv'; a.click();};
+$('#bTheme').onclick=()=>{const r=document.documentElement; const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark'; try{localStorage.setItem(LS+'.theme',r.dataset.theme);}catch(e){} SIM.dirty=true; BAU.dirty=true;};
+try{const th=localStorage.getItem(LS+'.theme'); if(th) document.documentElement.dataset.theme=th;}catch(e){}
+
+renderAll();
+try{const tb=localStorage.getItem(LS+'.tab'); if(tb){const b=document.querySelector(`#tabs button[data-p="${tb}"]`); if(b) b.click();}}catch(e){}
+</script>
+</body>
+</html>
