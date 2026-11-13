@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Katzen-Memory</title>
+<style>
+  :root {
+    --bar: #3b2a20;
+    --bar-text: #fbefe0;
+    --accent: #f2a541;
+    --panel: #fffaf2;
+    --panel-text: #3b2a20;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #2a1d15; overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #bar { height: 52px; display: flex; align-items: center; gap: 18px; padding: 0 16px;
+    background: var(--bar); color: var(--bar-text); font-size: 15px; white-space: nowrap; }
+  #bar b { color: var(--accent); }
+  #bar .title { font-weight: 700; font-size: 17px; margin-right: auto; }
+  #game { display: block; width: 100%; height: calc(100% - 52px); touch-action: none; cursor: pointer; }
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(30, 20, 14, .6); padding: 16px; }
+  #overlay.hidden { display: none; }
+  .card { background: var(--panel); color: var(--panel-text); border-radius: 18px; padding: 28px 28px 24px;
+    max-width: 460px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  .card h1 { margin: 0 0 10px; font-size: 28px; }
+  .card p { margin: 8px 0; line-height: 1.45; }
+  .card ol { text-align: left; margin: 10px auto; padding-left: 22px; }
+  .card button { margin-top: 16px; font-size: 18px; font-weight: 700; padding: 12px 28px; border: 0;
+    border-radius: 12px; background: var(--accent); color: #3b2a20; cursor: pointer; }
+  .card button:hover { filter: brightness(1.07); }
+  @media (max-width: 560px) {
+    #bar { gap: 10px; font-size: 13px; }
+    #bar .title { font-size: 14px; }
+    #bar .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span class="title">🐱 Katzen-Memory</span>
+  <span>Level: <b id="lvl">–</b></span>
+  <span>Paare: <b id="pairs">0/25</b></span>
+  <span class="hide-sm">Züge: <b id="moves">0</b></span>
+  <span class="hide-sm">Zeit: <b id="time">0:00</b></span>
+</div>
+<canvas id="game"></canvas>
+<div id="overlay"><div class="card" id="card"></div></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Inhalte der drei Level (je 25 Paare) ----------
+  const COLORS = [
+    ['Rot', '#e53935'], ['Dunkelrot', '#8b1a1a'], ['Rosa', '#f8bbd0'], ['Pink', '#ff4fa3'],
+    ['Orange', '#fb8c00'], ['Gelb', '#ffeb3b'], ['Gold', '#c9a227'], ['Beige', '#e8d8b5'],
+    ['Braun', '#795548'], ['Hellgrün', '#9ccc65'], ['Grün', '#2e9d3f'], ['Dunkelgrün', '#1b4d2b'],
+    ['Oliv', '#808000'], ['Türkis', '#1ec8c8'], ['Hellblau', '#81d4fa'], ['Blau', '#1e63d6'],
+    ['Dunkelblau', '#152a6b'], ['Violett', '#7b2fbe'], ['Lila', '#b57edc'], ['Magenta', '#d4148c'],
+    ['Schwarz', '#111111'], ['Grau', '#8a8a8a'], ['Weiß', '#ffffff'], ['Lachs', '#fa8072'],
+    ['Mint', '#b6f2d0'],
+  ];
+
+  // e = Emoji, sonst wird die Frucht/das Gemüse gezeichnet (shape + Farbe)
+  const FRUITS = [
+    { n: 'Apfel', e: '🍎' }, { n: 'Grüner Apfel', e: '🍏' }, { n: 'Birne', e: '🍐' },
+    { n: 'Orange', e: '🍊' }, { n: 'Zitrone', e: '🍋' }, { n: 'Banane', e: '🍌' },
+    { n: 'Wassermelone', e: '🍉' }, { n: 'Trauben', e: '🍇' }, { n: 'Erdbeere', e: '🍓' },
+    { n: 'Heidelbeeren', e: '🫐' }, { n: 'Honigmelone', e: '🍈' }, { n: 'Kirschen', e: '🍒' },
+    { n: 'Pfirsich', e: '🍑' }, { n: 'Mango', e: '🥭' }, { n: 'Ananas', e: '🍍' },
+    { n: 'Kokosnuss', e: '🥥' }, { n: 'Kiwi', e: '🥝' },
+    { n: 'Pflaume', s: 'oval', c: '#5b2a6e' }, { n: 'Himbeere', s: 'berry', c: '#d6264f' },
+    { n: 'Limette', s: 'round', c: '#7cc242' }, { n: 'Aprikose', s: 'round', c: '#f4a340' },
+    { n: 'Feige', s: 'drop', c: '#6b3b5a' }, { n: 'Granatapfel', s: 'crown', c: '#b3132b' },
+    { n: 'Brombeere', s: 'berry', c: '#2b1a3a' }, { n: 'Papaya', s: 'oval', c: '#f7a440' },
+  ];
+
+  const VEGGIES = [
+    { n: 'Karotte', e: '🥕' }, { n: 'Mais', e: '🌽' }, { n: 'Brokkoli', e: '🥦' },
+    { n: 'Gurke', e: '🥒' }, { n: 'Salat', e: '🥬' }, { n: 'Paprika', e: '🫑' },
+    { n: 'Chili', e: '🌶️' }, { n: 'Aubergine', e: '🍆' }, { n: 'Kartoffel', e: '🥔' },
+    { n: 'Süßkartoffel', e: '🍠' }, { n: 'Zwiebel', e: '🧅' }, { n: 'Knoblauch', e: '🧄' },
+    { n: 'Bohnen', e: '🫘' }, { n: 'Tomate', e: '🍅' }, { n: 'Avocado', e: '🥑' },
+    { n: 'Erbsen', s: 'pod', c: '#6dbb3c' }, { n: 'Kürbis', s: 'pumpkin', c: '#f07d1a' },
+    { n: 'Radieschen', s: 'root', c: '#e0245e' }, { n: 'Rote Bete', s: 'root', c: '#7a1035' },
+    { n: 'Spargel', s: 'long', c: '#8bb85a' }, { n: 'Zucchini', s: 'long', c: '#2f6b2a' },
+    { n: 'Lauch', s: 'leek', c: '#cfe8a8' }, { n: 'Rosenkohl', s: 'sprout', c: '#7fb547' },
+    { n: 'Blumenkohl', s: 'cauli', c: '#f4efdc' }, { n: 'Kohlrabi', s: 'kohlrabi', c: '#b9dc8a' },
+  ];
+
+  const LEVELS = [
+    { name: 'Farben', speed: 1.0, items: COLORS.map(([n, c]) => ({ n, color: c })) },
+    { name: 'Früchte', speed: 1.2, items: FRUITS },
+    { name: 'Gemüse', speed: 1.4, items: VEGGIES },
+  ];
+
+  const FUR = [
+    { base: '#e8913a', dark: '#b8651c', light: '#f7d2a6', stripes: true },  // rot getigert
+    { base: '#8c8c8c', dark: '#5f5f5f', light: '#cfcfcf', stripes: true },  // grau getigert
+    { base: '#2b2b2b', dark: '#111', light: '#444', stripes: false },       // schwarz
+    { base: '#f4f1ea', dark: '#d8d2c4', light: '#fff', stripes: false },    // weiß
+    { base: '#d9c09a', dark: '#a8875a', light: '#f3e6cf', stripes: false }, // creme
+    { base: '#6e5640', dark: '#43342a', light: '#a08468', stripes: true },  // braun getigert
+    { base: '#9aa3b0', dark: '#6c7480', light: '#c6ccd4', stripes: false }, // blaugrau
+  ];
+
+  // ---------- Canvas-Setup ----------
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const bg = document.createElement('canvas');
+  const bgx = bg.getContext('2d');
+  let W = 0, H = 0, DPR = 1, R = 20, WALL = 18;
+
+  const $ = (id) => document.getElementById(id);
+  const overlay = $('overlay'), card = $('card');
+
+  let levelIndex = 0, cats = [], open = [], lockUntil = 0, moves = 0, found = 0;
+  let startTime = 0, elapsed = 0, running = false, effects = [];
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    const oldW = W, oldH = H;
+    W = rect.width; H = rect.height;
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    bg.width = canvas.width; bg.height = canvas.height;
+    WALL = Math.max(10, Math.min(W, H) * 0.025);
+    R = Math.max(11, Math.min(30, Math.sqrt((W * H) / 50) * 0.17));
+    drawRoom();
+    if (oldW && oldH) for (const c of cats) { c.x *= W / oldW; c.y *= H / oldH; }
+  }
+
+  // ---------- Zimmer (Draufsicht) ----------
+  function drawRoom() {
+    const g = bgx;
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // Holzdielen
+    const plank = Math.max(22, R * 1.6);
+    g.fillStyle = '#c99a63'; g.fillRect(0, 0, W, H);
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let y = 0, row = 0; y < H; y += plank, row++) {
+      let x = -rnd() * 200;
+      while (x < W) {
+        const len = 120 + rnd() * 160;
+        const shade = 0.88 + rnd() * 0.2;
+        g.fillStyle = `rgb(${201 * shade | 0},${154 * shade | 0},${99 * shade | 0})`;
+        g.fillRect(x, y, len - 2, plank - 2);
+        g.strokeStyle = 'rgba(90,55,25,.15)'; g.lineWidth = 1;
+        for (let k = 0; k < 3; k++) {
+          const yy = y + 4 + rnd() * (plank - 8);
+          g.beginPath(); g.moveTo(x + 4, yy);
+          g.bezierCurveTo(x + len * 0.3, yy + 2, x + len * 0.6, yy - 2, x + len - 6, yy); g.stroke();
+        }
+        x += len;
+      }
+    }
+    // Teppich
+    const rx = W / 2, ry = H / 2, rw = W * 0.28, rh = H * 0.26;
+    g.fillStyle = '#7d3c4a';
+    ellipse(g, rx, ry, rw, rh); g.fill();
+    g.strokeStyle = '#e9c46a'; g.lineWidth = 4; ellipse(g, rx, ry, rw * 0.9, rh * 0.88); g.stroke();
+    g.strokeStyle = 'rgba(233,196,106,.5)'; g.lineWidth = 2; ellipse(g, rx, ry, rw * 0.6, rh * 0.58); g.stroke();
+    // Sofa oben
+    const sw = Math.min(W * 0.34, 340), sh = Math.max(40, R * 3);
+    const sx = W * 0.5 - sw / 2, sy = WALL + 4;
+    roundRect(g, sx, sy, sw, sh, 12); g.fillStyle = '#3f6e8c'; g.fill();
+    roundRect(g, sx + 10, sy + sh * 0.35, sw - 20, sh * 0.58, 10); g.fillStyle = '#5a8fb0'; g.fill();
+    g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(sx + sw / 2, sy + sh * 0.38); g.lineTo(sx + sw / 2, sy + sh * 0.9); g.stroke();
+    // Pflanze unten links
+    const px = WALL + R * 2.2, py = H - WALL - R * 2.2;
+    g.fillStyle = '#9c5b34'; ellipse(g, px, py, R * 1.4, R * 1.4); g.fill();
+    g.fillStyle = '#2f7d32';
+    for (let i = 0; i < 7; i++) {
+      const a = i / 7 * Math.PI * 2;
+      g.save(); g.translate(px, py); g.rotate(a);
+      ellipse(g, R * 1.1, 0, R * 1.2, R * 0.45); g.fill(); g.restore();
+    }
+    // Katzenbett oben rechts
+    const bx = W - WALL - R * 2.8, by = WALL + R * 2.8;
+    g.fillStyle = '#b5838d'; ellipse(g, bx, by, R * 2.2, R * 2); g.fill();
+    g.fillStyle = '#f2d0d6'; ellipse(g, bx, by, R * 1.6, R * 1.4); g.fill();
+    // Futternäpfe unten rechts
+    const fx = W - WALL - R * 4, fy = H - WALL - R * 1.6;
+    for (let i = 0; i < 2; i++) {
+      g.fillStyle = '#d0d4da'; ellipse(g, fx + i * R * 2.4, fy, R, R); g.fill();
+      g.fillStyle = i ? '#7fb7e8' : '#8a5a3c'; ellipse(g, fx + i * R * 2.4, fy, R * 0.65, R * 0.65); g.fill();
+    }
+    // Wollknäuel
+    g.fillStyle = '#e05a7a'; ellipse(g, W * 0.2, H * 0.3, R * 0.6, R * 0.6); g.fill();
+    g.strokeStyle = '#a8324f'; g.lineWidth = 1.5;
+    for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(W * 0.2, H * 0.3, R * 0.6, i, i + 1.6); g.stroke(); }
+    // Wände
+    g.fillStyle = '#efe3cf';
+    g.fillRect(0, 0, W, WALL); g.fillRect(0, H - WALL, W, WALL);
+    g.fillRect(0, 0, WALL, H); g.fillRect(W - WALL, 0, WALL, H);
+    g.strokeStyle = 'rgba(80,50,30,.35)'; g.lineWidth = 2;
+    g.strokeRect(WALL, WALL, W - 2 * WALL, H - 2 * WALL);
+    // Tür unten
+    g.fillStyle = '#8a5a3c'; g.fillRect(W * 0.3, H - WALL, W * 0.1, WALL);
+  }
+
+  function ellipse(g, x, y, rx, ry) { g.beginPath(); g.ellipse(x, y, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2); }
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  // ---------- Level-Start ----------
+  function startLevel(i) {
+    levelIndex = i;
+    const lv = LEVELS[i];
+    const deck = [];
+    lv.items.forEach((item, id) => { deck.push(id, id); });
+    shuffle(deck);
+    cats = deck.map((id) => {
+      const fur = FUR[(Math.random() * FUR.length) | 0];
+      return {
+        id, item: lv.items[id], fur,
+        x: WALL + R * 2 + Math.random() * (W - 2 * WALL - R * 4),
+        y: WALL + R * 2 + Math.random() * (H - 2 * WALL - R * 4),
+        a: Math.random() * Math.PI * 2, turn: 0, v: 0,
+        target: (30 + Math.random() * 30), pause: 0,
+        phase: Math.random() * 10, tail: Math.random() * 10,
+        scale: 0.9 + Math.random() * 0.2,
+        open: false, matched: false, fade: 1, pop: 0,
+      };
+    });
+    open = []; lockUntil = 0; moves = 0; found = 0; effects = [];
+    startTime = performance.now(); elapsed = 0; running = true;
+    $('lvl').textContent = `${i + 1}/3 · ${lv.name}`;
+    updateHud();
+    overlay.classList.add('hidden');
+  }
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function updateHud() {
+    $('pairs').textContent = `${found}/25`;
+    $('moves').textContent = moves;
+    const s = Math.floor(elapsed / 1000);
+    $('time').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  // ---------- Eingabe ----------
+  canvas.addEventListener('pointerdown', (ev) => {
+    if (!running) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+    const now = performance.now();
+
+    // Falsches Paar offen: Klick schließt sofort
+    if (open.length === 2) {
+      if (now < lockUntil) { closeOpen(); } else return;
+    }
+
+    let best = null, bestD = Infinity;
+    for (const c of cats) {
+      if (c.matched || c.open) continue;
+      const d = Math.hypot(c.x - x, c.y - y);
+      if (d < R * 1.6 * c.scale && d < bestD) { best = c; bestD = d; }
+    }
+    if (!best) return;
+    best.open = true; best.pop = 0;
+    open.push(best);
+
+    if (open.length === 2) {
+      moves++;
+      const [p, q] = open;
+      if (p.id === q.id) {
+        p.matched = q.matched = true;
+        found++;
+        effects.push({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2, t: 0, from: [p, q] });
+        open = [];
+        if (found === 25) setTimeout(levelDone, 1400);
+      } else {
+        lockUntil = now + 1300;
+      }
+      updateHud();
+    }
+  });
+
+  function closeOpen() {
+    for (const c of open) c.open = false;
+    open = []; lockUntil = 0;
+  }
+
+  // ---------- Bewegung ----------
+  function update(dt, now) {
+    if (open.length === 2 && lockUntil && now >= lockUntil) closeOpen();
+    const sp = LEVELS[levelIndex].speed * R / 20;
+    const minX = WALL + R, maxX = W - WALL - R, minY = WALL + R, maxY = H - WALL - R;
+
+    for (const c of cats) {
+      c.pop = Math.min(1, c.pop + dt * 6);
+      if (c.matched) { c.fade -= dt * 0.7; c.a += dt * 3; continue; }
+
+      // Kurze Pausen, aber sie laufen immer wieder los
+      if (c.pause > 0) {
+        c.pause -= dt;
+      } else if (Math.random() < dt * 0.12) {
+        c.pause = 0.3 + Math.random() * 0.8;
+      }
+      if (Math.random() < dt * 0.4) c.target = 25 + Math.random() * 45;
+      const want = c.pause > 0 ? 0 : c.target * sp * (c.open ? 0.55 : 1);
+      c.v += (want - c.v) * Math.min(1, dt * 3);
+
+      c.turn += (Math.random() - 0.5) * dt * 10;
+      c.turn *= Math.pow(0.3, dt);
+      c.turn = Math.max(-2.5, Math.min(2.5, c.turn));
+      c.a += c.turn * dt;
+
+      // Von den Wänden weglenken
+      const m = R * 2.5;
+      let sx = 0, sy = 0;
+      if (c.x < minX + m) sx += 1; if (c.x > maxX - m) sx -= 1;
+      if (c.y < minY + m) sy += 1; if (c.y > maxY - m) sy -= 1;
+      if (sx || sy) {
+        const da = angDiff(Math.atan2(sy, sx), c.a);
+        c.a += da * Math.min(1, dt * 3);
+      }
+
+      c.x += Math.cos(c.a) * c.v * dt;
+      c.y += Math.sin(c.a) * c.v * dt;
+      c.phase += c.v * dt * 0.25;
+      c.tail += dt * (2 + c.v * 0.03);
+
+      if (c.x < minX) { c.x = minX; c.a = Math.PI - c.a; }
+      if (c.x > maxX) { c.x = maxX; c.a = Math.PI - c.a; }
+      if (c.y < minY) { c.y = minY; c.a = -c.a; }
+      if (c.y > maxY) { c.y = maxY; c.a = -c.a; }
+    }
+
+    // Katzen schieben sich sanft auseinander
+    const live = cats.filter((c) => !c.matched);
+    const minD = R * 1.5;
+    for (let i = 0; i < live.length; i++) {
+      for (let j = i + 1; j < live.length; j++) {
+        const p = live[i], q = live[j];
+        const dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy);
+        if (d > 0 && d < minD) {
+          const push = (minD - d) * 0.5 * Math.min(1, dt * 8) / d;
+          p.x -= dx * push; p.y -= dy * push; q.x += dx * push; q.y += dy * push;
+        }
+      }
+    }
+    cats = cats.filter((c) => c.fade > 0);
+    for (const e of effects) e.t += dt;
+    effects = effects.filter((e) => e.t < 1.4);
+  }
+
+  function angDiff(a, b) {
+    let d = a - b;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
+  // ---------- Zeichnen ----------
+  function drawCat(c) {
+    const r = R * c.scale, f = c.fur;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, c.fade));
+    ctx.translate(c.x, c.y);
+    // Schatten
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ellipse(ctx, r * 0.1, r * 0.15, r * 1.25, r * 0.85); ctx.fill();
+    ctx.rotate(c.a);
+
+    // Markierung für aufgedeckte Katzen
+    if (c.open || c.matched) {
+      ctx.strokeStyle = c.matched ? '#4caf50' : '#ffd54f';
+      ctx.lineWidth = 3; ellipse(ctx, r * 0.2, 0, r * 1.75, r * 1.05); ctx.stroke();
+    }
+
+    // Pfoten
+    const step = Math.sin(c.phase) * r * 0.18;
+    ctx.fillStyle = f.dark;
+    for (const [px, py, s] of [[r * 0.55, -r * 0.5, 1], [r * 0.55, r * 0.5, -1], [-r * 0.55, -r * 0.5, -1], [-r * 0.55, r * 0.5, 1]]) {
+      ellipse(ctx, px + step * s, py, r * 0.2, r * 0.15); ctx.fill();
+    }
+    // Schwanz
+    const w = Math.sin(c.tail) * r * 0.7;
+    ctx.strokeStyle = f.base; ctx.lineCap = 'round'; ctx.lineWidth = r * 0.24;
+    ctx.beginPath(); ctx.moveTo(-r * 0.8, 0);
+    ctx.bezierCurveTo(-r * 1.4, w * 0.3, -r * 1.7, w, -r * 2.1, w * 0.6); ctx.stroke();
+    ctx.strokeStyle = f.dark; ctx.lineWidth = r * 0.24;
+    ctx.beginPath(); ctx.moveTo(-r * 1.95, w * 0.72); ctx.lineTo(-r * 2.1, w * 0.6); ctx.stroke();
+    // Körper
+    ctx.fillStyle = f.base; ellipse(ctx, 0, 0, r * 1.0, r * 0.62); ctx.fill();
+    if (f.stripes) {
+      ctx.strokeStyle = f.dark; ctx.lineWidth = r * 0.12;
+      for (let i = -2; i <= 1; i++) {
+        ctx.beginPath(); ctx.moveTo(i * r * 0.3, -r * 0.5);
+        ctx.quadraticCurveTo(i * r * 0.3 - r * 0.12, 0, i * r * 0.3, r * 0.5); ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = f.light; ellipse(ctx, -r * 0.1, 0, r * 0.45, r * 0.25); ctx.fill();
+    }
+    // Kopf
+    const hx = r * 0.98, hr = r * 0.48;
+    ctx.fillStyle = f.base;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(hx + Math.cos(s * 0.35) * hr * 0.7, Math.sin(s * 0.35) * hr * 0.7);
+      ctx.lineTo(hx + Math.cos(s * 1.0) * hr * 1.5, Math.sin(s * 1.0) * hr * 1.5);
+      ctx.lineTo(hx + Math.cos(s * 1.65) * hr * 0.85, Math.sin(s * 1.65) * hr * 0.85);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f1a7b5';
+      ctx.beginPath();
+      ctx.moveTo(hx + Math.cos(s * 0.6) * hr * 0.85, Math.sin(s * 0.6) * hr * 0.85);
+      ctx.lineTo(hx + Math.cos(s * 1.0) * hr * 1.3, Math.sin(s * 1.0) * hr * 1.3);
+      ctx.lineTo(hx + Math.cos(s * 1.35) * hr * 0.9, Math.sin(s * 1.35) * hr * 0.9);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = f.base;
+    }
+    ellipse(ctx, hx, 0, hr, hr); ctx.fill();
+    // Schnauze + Schnurrhaare
+    ctx.fillStyle = '#f08ca0'; ellipse(ctx, hx + hr * 0.92, 0, hr * 0.14, hr * 0.12); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
+    for (const s of [-1, 1]) for (const k of [0.2, 0.45]) {
+      ctx.beginPath(); ctx.moveTo(hx + hr * 0.75, s * hr * 0.2);
+      ctx.lineTo(hx + hr * 1.35, s * hr * (0.5 + k)); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawBubble(c) {
+    const r = R * c.scale;
+    const k = 0.4 + 0.6 * easeOutBack(c.pop);
+    const bw = Math.max(54, R * 3.0), bh = bw * 1.05;
+    let bx = c.x - bw / 2, by = c.y - r * 1.4 - bh;
+    if (by < 2) by = c.y + r * 1.4;
+    bx = Math.max(2, Math.min(W - bw - 2, bx));
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, c.fade));
+    ctx.translate(bx + bw / 2, by + bh / 2); ctx.scale(k, k); ctx.translate(-bw / 2, -bh / 2);
+    ctx.shadowColor = 'rgba(0,0,0,.3)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+    roundRect(ctx, 0, 0, bw, bh, 12);
+    ctx.fillStyle = c.matched ? '#eaf8e6' : '#fffdf7'; ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = c.matched ? '#4caf50' : '#f2a541'; ctx.lineWidth = 2.5; ctx.stroke();
+    drawItem(ctx, c.item, bw / 2, bh * 0.42, bw * 0.3);
+    ctx.fillStyle = '#3b2a20';
+    let fs = Math.max(9, bw * 0.15);
+    ctx.font = `600 ${fs}px system-ui, sans-serif`;
+    while (ctx.measureText(c.item.n).width > bw - 8 && fs > 7) { fs -= 0.5; ctx.font = `600 ${fs}px system-ui, sans-serif`; }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(c.item.n, bw / 2, bh * 0.86);
+    ctx.restore();
+  }
+
+  function easeOutBack(t) { const s = 1.7; t -= 1; return t * t * ((s + 1) * t + s) + 1; }
+
+  // Zeichnet Farbe, Emoji oder ein gezeichnetes Obst/Gemüse (Radius s)
+  function drawItem(g, it, x, y, s) {
+    g.save(); g.translate(x, y);
+    if (it.color) {
+      ellipse(g, 0, 0, s, s); g.fillStyle = it.color; g.fill();
+      g.lineWidth = 2; g.strokeStyle = 'rgba(0,0,0,.35)'; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.35)'; ellipse(g, -s * 0.35, -s * 0.35, s * 0.25, s * 0.18); g.fill();
+    } else if (it.e) {
+      g.font = `${s * 1.7}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(it.e, 0, s * 0.08);
+    } else {
+      drawShape(g, it.s, it.c, s);
+    }
+    g.restore();
+  }
+
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const cl = (v) => Math.max(0, Math.min(255, v));
+    const r = cl((n >> 16) + amt), gg = cl(((n >> 8) & 255) + amt), b = cl((n & 255) + amt);
+    return `rgb(${r},${gg},${b})`;
+  }
+
+  function leaf(g, x, y, l, w, a, col = '#3e8e3a') {
+    g.save(); g.translate(x, y); g.rotate(a); g.fillStyle = col;
+    g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(l * 0.5, -w, l, 0); g.quadraticCurveTo(l * 0.5, w, 0, 0); g.fill();
+    g.restore();
+  }
+  function stem(g, x1, y1, x2, y2, w) {
+    g.strokeStyle = '#6b4423'; g.lineWidth = w; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  }
+  function shine(g, x, y, rx, ry) { g.fillStyle = 'rgba(255,255,255,.35)'; ellipse(g, x, y, rx, ry); g.fill(); }
+
+  function drawShape(g, type, col, s) {
+    g.lineJoin = 'round';
+    switch (type) {
+      case 'round':
+        g.fillStyle = col; ellipse(g, 0, s * 0.1, s * 0.85, s * 0.85); g.fill();
+        g.strokeStyle = shade(col, -50); g.lineWidth = 1.5; g.stroke();
+        stem(g, 0, -s * 0.7, s * 0.1, -s * 0.95, s * 0.1); leaf(g, s * 0.08, -s * 0.85, s * 0.5, s * 0.18, -0.4);
+        shine(g, -s * 0.35, -s * 0.2, s * 0.18, s * 0.12); break;
+      case 'oval':
+        g.fillStyle = col; ellipse(g, 0, s * 0.05, s * 0.72, s * 0.92); g.fill();
+        g.strokeStyle = shade(col, -50); g.lineWidth = 1.5; g.stroke();
+        g.strokeStyle = shade(col, -35); g.beginPath(); g.moveTo(0, -s * 0.8); g.quadraticCurveTo(s * 0.25, 0, 0, s * 0.9); g.stroke();
+        stem(g, 0, -s * 0.85, 0, -s * 1.05, s * 0.09);
+        shine(g, -s * 0.3, -s * 0.3, s * 0.14, s * 0.22); break;
+      case 'berry': {
+        const pts = [[0, -0.45], [-0.35, -0.2], [0.35, -0.2], [0, 0], [-0.3, 0.25], [0.3, 0.25], [0, 0.5], [-0.15, -0.25], [0.15, 0.22]];
+        for (const [px, py] of pts) {
+          g.fillStyle = col; ellipse(g, px * s, py * s + s * 0.1, s * 0.28, s * 0.28); g.fill();
+          g.strokeStyle = shade(col, -45); g.lineWidth = 1; g.stroke();
+          g.fillStyle = 'rgba(255,255,255,.4)'; ellipse(g, px * s - s * 0.08, py * s + s * 0.03, s * 0.06, s * 0.05); g.fill();
+        }
+        leaf(g, 0, -s * 0.6, s * 0.45, s * 0.15, -2.6); leaf(g, 0, -s * 0.6, s * 0.45, s * 0.15, -0.5); break;
+      }
+      case 'drop':
+        g.fillStyle = col; g.beginPath(); g.moveTo(0, -s * 0.95);
+        g.bezierCurveTo(s * 0.35, -s * 0.6, s * 0.95, s * 0.1, s * 0.6, s * 0.65);
+        g.bezierCurveTo(s * 0.3, s * 1.0, -s * 0.3, s * 1.0, -s * 0.6, s * 0.65);
+        g.bezierCurveTo(-s * 0.95, s * 0.1, -s * 0.35, -s * 0.6, 0, -s * 0.95); g.fill();
+        g.strokeStyle = shade(col, -40); g.lineWidth = 1.5; g.stroke();
+        stem(g, 0, -s * 0.9, 0, -s * 1.08, s * 0.1);
+        shine(g, -s * 0.3, s * 0.1, s * 0.12, s * 0.2); break;
+      case 'crown':
+        g.fillStyle = col; ellipse(g, 0, s * 0.12, s * 0.85, s * 0.82); g.fill();
+        g.strokeStyle = shade(col, -50); g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = shade(col, -30); g.beginPath();
+        g.moveTo(-s * 0.25, -s * 0.62); g.lineTo(-s * 0.3, -s * 0.92); g.lineTo(-s * 0.1, -s * 0.75);
+        g.lineTo(0, -s * 0.98); g.lineTo(s * 0.1, -s * 0.75); g.lineTo(s * 0.3, -s * 0.92); g.lineTo(s * 0.25, -s * 0.62); g.closePath(); g.fill();
+        shine(g, -s * 0.35, -s * 0.15, s * 0.18, s * 0.12); break;
+      case 'pod':
+        g.save(); g.rotate(-0.5);
+        g.fillStyle = col; g.beginPath(); g.moveTo(-s, 0);
+        g.quadraticCurveTo(0, -s * 0.75, s, 0); g.quadraticCurveTo(0, s * 0.45, -s, 0); g.fill();
+        g.strokeStyle = shade(col, -50); g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = shade(col, 25);
+        for (let i = -2; i <= 2; i++) { ellipse(g, i * s * 0.32, -s * 0.08, s * 0.16, s * 0.16); g.fill(); }
+        g.restore(); break;
+      case 'pumpkin':
+        g.fillStyle = shade(col, -25); ellipse(g, -s * 0.45, s * 0.1, s * 0.5, s * 0.72); g.fill(); ellipse(g, s * 0.45, s * 0.1, s * 0.5, s * 0.72); g.fill();
+        g.fillStyle = col; ellipse(g, 0, s * 0.1, s * 0.5, s * 0.78); g.fill();
+        g.strokeStyle = shade(col, -60); g.lineWidth = 1.2; g.stroke();
+        g.fillStyle = '#4e7d2e'; g.fillRect(-s * 0.08, -s * 0.9, s * 0.16, s * 0.3); break;
+      case 'root':
+        g.fillStyle = col; g.beginPath(); g.moveTo(-s * 0.65, -s * 0.2);
+        g.bezierCurveTo(-s * 0.7, s * 0.35, -s * 0.2, s * 0.6, 0, s * 1.0);
+        g.bezierCurveTo(s * 0.2, s * 0.6, s * 0.7, s * 0.35, s * 0.65, -s * 0.2);
+        g.bezierCurveTo(s * 0.55, -s * 0.6, -s * 0.55, -s * 0.6, -s * 0.65, -s * 0.2); g.fill();
+        g.strokeStyle = shade(col, -45); g.lineWidth = 1.5; g.stroke();
+        leaf(g, 0, -s * 0.42, s * 0.6, s * 0.2, -1.2); leaf(g, 0, -s * 0.42, s * 0.6, s * 0.2, -1.9); leaf(g, 0, -s * 0.42, s * 0.55, s * 0.2, -1.57);
+        shine(g, -s * 0.3, -s * 0.05, s * 0.1, s * 0.16); break;
+      case 'long':
+        g.save(); g.rotate(-0.7);
+        roundRect(g, -s * 1.05, -s * 0.24, s * 2.1, s * 0.48, s * 0.24); g.fillStyle = col; g.fill();
+        g.strokeStyle = shade(col, -45); g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = shade(col, -30);
+        for (let i = -2; i <= 2; i++) { ellipse(g, i * s * 0.35, 0, s * 0.08, s * 0.05); g.fill(); }
+        stem(g, s * 1.0, 0, s * 1.15, 0, s * 0.12);
+        g.restore(); break;
+      case 'leek':
+        g.save(); g.rotate(-0.7);
+        g.fillStyle = '#f7f3e3'; roundRect(g, -s * 1.05, -s * 0.2, s * 1.1, s * 0.4, s * 0.15); g.fill();
+        g.fillStyle = col; roundRect(g, -s * 0.05, -s * 0.2, s * 0.5, s * 0.4, 2); g.fill();
+        leaf(g, s * 0.35, 0, s * 0.8, s * 0.22, -0.25, '#3f7f2a'); leaf(g, s * 0.35, 0, s * 0.8, s * 0.22, 0.25, '#4e9a35');
+        g.strokeStyle = '#a99f7a'; g.lineWidth = 1;
+        for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(-s * 1.05, (i - 1.5) * s * 0.06); g.lineTo(-s * 1.25, (i - 1.5) * s * 0.12); g.stroke(); }
+        g.restore(); break;
+      case 'sprout':
+        for (const [px, py] of [[-0.42, 0.25], [0.42, 0.25], [0, -0.3]]) {
+          g.fillStyle = col; ellipse(g, px * s, py * s, s * 0.42, s * 0.42); g.fill();
+          g.strokeStyle = shade(col, -55); g.lineWidth = 1.2; g.stroke();
+          g.beginPath(); g.arc(px * s, py * s, s * 0.25, -2.4, -0.7); g.stroke();
+        }
+        break;
+      case 'cauli':
+        for (const a of [0.3, 1.5, 2.6, 3.7, 4.9]) leaf(g, 0, 0, s * 1.0, s * 0.35, a, '#4f8f3a');
+        g.fillStyle = col;
+        for (const [px, py] of [[0, 0], [-0.35, -0.2], [0.35, -0.2], [-0.3, 0.3], [0.3, 0.3], [0, -0.42], [0, 0.42]]) {
+          ellipse(g, px * s, py * s, s * 0.3, s * 0.3); g.fill(); g.strokeStyle = '#d6cfae'; g.lineWidth = 1; g.stroke();
+        }
+        break;
+      case 'kohlrabi':
+        g.strokeStyle = '#5e9c3c'; g.lineWidth = s * 0.08; g.lineCap = 'round';
+        for (const a of [-2.2, -1.57, -0.9]) { g.beginPath(); g.moveTo(0, -s * 0.3); g.lineTo(Math.cos(a) * s * 0.9, Math.sin(a) * s * 0.9 - s * 0.2); g.stroke(); leaf(g, Math.cos(a) * s * 0.8, Math.sin(a) * s * 0.8 - s * 0.2, s * 0.4, s * 0.2, a, '#4e9a35'); }
+        g.fillStyle = col; ellipse(g, 0, s * 0.25, s * 0.72, s * 0.65); g.fill();
+        g.strokeStyle = shade(col, -50); g.lineWidth = 1.5; g.stroke();
+        shine(g, -s * 0.3, s * 0.05, s * 0.15, s * 0.1); break;
+    }
+  }
+
+  function drawEffects() {
+    for (const e of effects) {
+      const t = e.t / 1.4;
+      // Linie zwischen den Partnern
+      if (t < 0.6 && e.from[0].fade > 0) {
+        ctx.save(); ctx.globalAlpha = 1 - t / 0.6;
+        ctx.strokeStyle = '#ff6f91'; ctx.setLineDash([6, 6]); ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(e.from[0].x, e.from[0].y); ctx.lineTo(e.from[1].x, e.from[1].y); ctx.stroke();
+        ctx.restore();
+      }
+      for (const c of e.from) {
+        ctx.save(); ctx.globalAlpha = 1 - t;
+        ctx.font = `${R * (1 + t)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('💖', c.x, c.y - R * 1.2 - t * R * 2.5);
+        ctx.restore();
+      }
+    }
+  }
+
+  function render() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(bg, 0, 0);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const sorted = cats.slice().sort((a, b) => a.y - b.y);
+    for (const c of sorted) drawCat(c);
+    for (const c of sorted) if (c.open || c.matched) drawBubble(c);
+    drawEffects();
+  }
+
+  // ---------- Overlays ----------
+  function showStart() {
+    running = false;
+    card.innerHTML = `
+      <h1>🐱 Katzen-Memory</h1>
+      <p>Im Zimmer laufen <b>50 Katzen</b> herum. Jede trägt ein Geheimnis –
+      und genau eine andere Katze hat dasselbe. Finde alle <b>25 Pärchen</b>!</p>
+      <ol>
+        <li><b>Farben</b></li>
+        <li><b>Früchte</b></li>
+        <li><b>Gemüse</b></li>
+      </ol>
+      <p>Tippe eine Katze an, um ihr Geheimnis zu sehen. Aber Achtung:
+      Die Katzen bleiben nie lange stehen – merke dir, wohin sie laufen!</p>
+      <button id="go">Los geht's</button>`;
+    overlay.classList.remove('hidden');
+    $('go').onclick = () => startLevel(0);
+  }
+
+  function levelDone() {
+    running = false;
+    const s = Math.floor(elapsed / 1000);
+    const t = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const last = levelIndex === LEVELS.length - 1;
+    const stars = moves <= 45 ? '⭐⭐⭐' : moves <= 65 ? '⭐⭐' : '⭐';
+    card.innerHTML = last ? `
+      <h1>🏆 Geschafft!</h1>
+      <p>Du hast alle drei Level gemeistert – Farben, Früchte und Gemüse!</p>
+      <p>Letztes Level: <b>${moves}</b> Züge in <b>${t}</b> ${stars}</p>
+      <button id="go">Nochmal spielen</button>` : `
+      <h1>🎉 Level ${levelIndex + 1} geschafft!</h1>
+      <p><b>${LEVELS[levelIndex].name}</b>: alle 25 Pärchen gefunden.</p>
+      <p><b>${moves}</b> Züge in <b>${t}</b> ${stars}</p>
+      <p>Weiter geht's mit <b>${LEVELS[levelIndex + 1].name}</b> – die Katzen werden flinker!</p>
+      <button id="go">Nächstes Level</button>`;
+    overlay.classList.remove('hidden');
+    $('go').onclick = () => startLevel(last ? 0 : levelIndex + 1);
+  }
+
+  // ---------- Spielschleife ----------
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (running) {
+      elapsed = now - startTime;
+      update(dt, now);
+      if (((now / 250) | 0) !== ((now - dt * 1000) / 250 | 0)) updateHud();
+    } else if (cats.length) {
+      update(dt, now); // im Hintergrund laufen die Katzen weiter
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  // Deko-Katzen hinter dem Startbildschirm
+  startLevel(0); running = false; overlay.classList.remove('hidden');
+  showStart();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
