@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wer hat gefurzt?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=VT323&display=swap">
+<style>
+/* Layout: ein Aufzug-Bedienfeld aus gebürstetem Stahl – LED-Anzeige oben, Überwachungsmonitor in der Mitte, runde Ruftasten und Durchsage-Schild darunter. Bewusst ein einziges Erscheinungsbild. */
+:root{
+  --steel:#c3c8cc; --steel-hi:#e3e7e9; --steel-lo:#8c959b; --steel-edge:#6f787e;
+  --ink:#1b2125; --ink-soft:#4a545b;
+  --led-bg:#150e07; --amber:#ffad35; --amber-dim:#6a4410;
+  --bezel:#23272a; --bezel-hi:#3a4044;
+  --alarm:#d4432a; --ok:#3f8f4a;
+  --font-d:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-led:'VT323',ui-monospace,'Courier New',monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--steel)}
+body{
+  background:var(--steel);
+  background-image:repeating-linear-gradient(90deg,transparent 0 3px,rgba(255,255,255,.18) 3px 4px,transparent 4px 7px,rgba(0,0,0,.035) 7px 8px);
+  color:var(--ink); font-family:var(--font-d); font-size:16px; line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 48px;
+}
+.wrap{max-width:1000px;margin:0 auto;display:grid;gap:14px}
+
+/* Typenschild */
+.plate{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px}
+.plate h1{font-size:clamp(2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em;line-height:.95;margin:0;text-wrap:balance;
+  color:var(--ink);text-shadow:0 1px 0 var(--steel-hi),0 -1px 0 rgba(0,0,0,.25)}
+.plate .spec{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);
+  border:1.5px solid var(--steel-edge);border-radius:4px;padding:6px 10px;background:rgba(255,255,255,.25)}
+
+/* LED-Leiste */
+.led{background:var(--led-bg);border-radius:10px;padding:10px 14px;display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));gap:6px 14px;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.8),0 1px 0 var(--steel-hi),0 0 0 3px var(--steel-lo)}
+.cell{min-width:0}
+.cell small{display:block;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--amber-dim);font-weight:600}
+.cell b{display:block;font-family:var(--font-led);font-weight:400;font-size:2rem;line-height:1;color:var(--amber);
+  text-shadow:0 0 8px rgba(255,173,53,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.arrow.on{animation:blink .6s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+.clips{letter-spacing:.12em}
+
+/* Monitor */
+.monitor{position:relative;background:var(--bezel);border-radius:16px;padding:10px;
+  box-shadow:0 0 0 2px var(--steel-edge),0 8px 24px rgba(0,0,0,.25),inset 0 1px 0 var(--bezel-hi)}
+.screen{position:relative;border-radius:8px;overflow:hidden;background:#000}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/10;touch-action:manipulation}
+.scan{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.start{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,12,14,.35)}
+.start[hidden]{display:none!important}
+
+/* Ruftasten */
+.btn{appearance:none;border:0;cursor:pointer;font:inherit;color:var(--ink)}
+.call{display:inline-flex;align-items:center;gap:12px;font-weight:800;font-size:1.05rem;letter-spacing:.02em;
+  padding:8px 22px 8px 8px;border-radius:999px;background:linear-gradient(180deg,var(--steel-hi),var(--steel));
+  box-shadow:0 0 0 2px var(--steel-edge),0 3px 0 var(--steel-lo),0 6px 14px rgba(0,0,0,.25)}
+.call .dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:1.2rem;
+  background:radial-gradient(circle at 40% 35%,#fff7e6,var(--amber) 55%,#c97a12);
+  box-shadow:0 0 0 3px var(--led-bg),0 0 16px rgba(255,173,53,.8);color:var(--led-bg)}
+.call:active{transform:translateY(2px);box-shadow:0 0 0 2px var(--steel-edge),0 1px 0 var(--steel-lo)}
+.call:focus-visible,.round:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+
+.panel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+.durchsage{min-width:0;border-radius:10px;padding:16px 18px;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.12));
+  box-shadow:inset 0 0 0 1.5px var(--steel-edge),inset 0 2px 0 rgba(255,255,255,.5)}
+.kicker{margin:0 0 4px;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.durchsage h2{margin:0 0 6px;font-size:1.5rem;font-weight:800;line-height:1.1;text-wrap:balance}
+.durchsage p{margin:0 0 8px;max-width:65ch}
+.durchsage ul{margin:4px 0 10px;padding-left:1.2em;max-width:65ch}
+.durchsage li{margin:2px 0}
+.durchsage li.fake{color:var(--ink-soft)}
+.durchsage .good{color:var(--ok)} .durchsage .bad{color:var(--alarm)}
+.keys{display:flex;gap:12px}
+.round{display:grid;justify-items:center;gap:6px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);background:none}
+.round span.k{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:1.3rem;color:var(--ink);
+  background:radial-gradient(circle at 40% 35%,var(--steel-hi),var(--steel) 60%,var(--steel-lo));
+  box-shadow:0 0 0 3px var(--steel-edge),0 0 0 6px var(--steel-hi),0 4px 10px rgba(0,0,0,.25)}
+.round[aria-pressed="true"] span.k{box-shadow:0 0 0 3px var(--amber),0 0 0 6px var(--steel-hi),0 0 14px rgba(255,173,53,.7)}
+
+.tells h3{margin:0 0 8px;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.chips li{font-size:.86rem;padding:5px 10px;border-radius:4px;border:1.5px solid var(--steel-edge);background:rgba(255,255,255,.22)}
+.chips b{font-weight:800}
+
+@media (max-width:640px){
+  .led{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cell b{font-size:1.6rem}
+  .panel{grid-template-columns:minmax(0,1fr)}
+  .keys{justify-content:flex-end}
+  .monitor{padding:6px;border-radius:12px}
+  .call{font-size:.95rem}
+}
+@media (prefers-reduced-motion:reduce){.arrow.on{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="plate">
+    <h1>Wer hat gefurzt?</h1>
+    <div class="spec">Aufzug B · Kabine 1 · max. 6 Personen / 480 kg</div>
+  </header>
+
+  <div class="led" aria-live="off">
+    <div class="cell"><small>Stockwerk</small><b><span class="arrow" id="arrow">▲</span> <span id="floor">EG</span></b></div>
+    <div class="cell"><small>Tür öffnet</small><b id="door">--,-</b></div>
+    <div class="cell"><small>Punkte</small><b id="score">0000</b></div>
+    <div class="cell"><small>Serie</small><b id="streak">×0</b></div>
+    <div class="cell"><small>Nasenklammern</small><b class="clips" id="clips">■■■</b></div>
+  </div>
+
+  <div class="monitor">
+    <div class="screen">
+      <canvas id="cv" width="960" height="600" aria-label="Überwachungskamera im Aufzug. Tippe auf die Person, die gefurzt hat."></canvas>
+      <div class="scan"></div>
+      <div class="start" id="startOverlay">
+        <button class="btn call" id="startBtn" type="button"><span class="dot">▲</span>Einsteigen</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="durchsage" id="msg" aria-live="polite">
+      <p class="kicker">Durchsage</p>
+      <h2 id="msgTitle">Du hast Dienst in der Pförtnerloge.</h2>
+      <p id="msgBody">Auf dem Monitor siehst du Aufzug B. Irgendwann zwischen zwei Stockwerken lässt jemand einen fahren. Lies die Gesichter und tippe auf den Schuldigen, bevor sich die Tür öffnet.</p>
+      <ul id="msgList">
+        <li>Der Geruch breitet sich aus: Wer direkt neben der Quelle steht, verzieht zuerst das Gesicht.</li>
+        <li>Der Schuldige ekelt sich zu früh, zu spät oder gar nicht und hat oft noch andere Ticks.</li>
+        <li>Jeder Fehlgriff kostet eine Nasenklammer. Nach drei ist Schichtende.</li>
+      </ul>
+      <button class="btn call" id="nextBtn" type="button" hidden><span class="dot">▲</span><span id="nextLabel">Weiterfahren</span></button>
+    </div>
+    <div class="keys">
+      <button class="btn round" id="soundBtn" type="button" aria-pressed="true"><span class="k">♪</span>Ton</button>
+      <button class="btn round" id="resetBtn" type="button" aria-pressed="false"><span class="k">↺</span>Neu</button>
+    </div>
+  </section>
+
+  <section class="tells">
+    <h3>Verräterische Zeichen</h3>
+    <ul class="chips">
+      <li><b>Reihenfolge</b> – Nachbarn riechen es zuerst</li>
+      <li><b>Zu früh</b> geekelt</li>
+      <li><b>Zu spät</b> oder gar nicht geekelt</li>
+      <li><b>Pfeifen</b></li>
+      <li><b>Blick zur Decke</b></li>
+      <li><b>Schweißperle</b></li>
+      <li><b>Rot werden</b></li>
+      <li><b>Erleichtert</b> die Augen schließen</li>
+      <li><b>Blicken ausweichen</b></li>
+      <li><b>Böse Blicke</b> der anderen</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = 960, H = 600;
+let dpr = 1;
+function resize(){ dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = W*dpr; cv.height = H*dpr; }
+resize(); addEventListener('resize', resize);
+
+const rand = (a,b) => a + Math.random()*(b-a);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+/* ---------- Besetzung ---------- */
+const CAST = [
+ {name:'Oma Gerda', skin:'#f1c9a8', hair:'#dcd8d2', hs:'bun', brow:'#a39d94', shirt:'#7b4f8e', outfit:'cardigan', pants:'#4a4a55', glasses:true, earrings:true, react:'nose', line:'In meinem Alter darf man das.'},
+ {name:'Herr Brandt', skin:'#e8b996', hair:'#3b2a20', hs:'receding', brow:'#3b2a20', shirt:'#26324a', outfit:'suit', tie:'#b3332b', pants:'#1f2738', react:'disgust', line:'Das war das Meeting-Buffet.'},
+ {name:'Jonas', skin:'#f0c4a0', hair:'#6b4a2b', hs:'messy', brow:'#5a3d22', shirt:'#4f7a4a', outfit:'hoodie', pants:'#2d3a52', headphones:true, react:'annoyed', herring:'whistle', line:'Sorry, echt jetzt.'},
+ {name:'Kalle', skin:'#d9a27a', hair:'#5a4030', hs:'helmet', brow:'#4a3020', shirt:'#e8742b', outfit:'vest', pants:'#3c4a63', stubble:true, react:'fan', herring:'sweat', line:'Is halt Baustellenkost.'},
+ {name:'Dr. Yilmaz', skin:'#c99272', hair:'#1e1714', hs:'long', brow:'#1e1714', shirt:'#f2f2ee', outfit:'coat', pants:'#3a3f4a', react:'nose', herring:'ceiling', line:'Medizinisch völlig normal.'},
+ {name:'Lena', skin:'#f6d2b8', hair:'#c4552b', hs:'curly', brow:'#9c4020', shirt:'#2f5d8a', outfit:'stripes', pants:'#2a2f3a', react:'disgust', herring:'ceiling', line:'Upsi.'},
+ {name:'Hausmeister Rudi', skin:'#e5ae8c', hair:'#8a7a6a', hs:'bald', brow:'#6a5a4a', shirt:'#355f9a', outfit:'overall', pants:'#355f9a', mustache:true, react:'fan', herring:'sweat', line:'Ich lüfte gleich. Später.'},
+ {name:'Herr Okafor', skin:'#7a4b30', hair:'#151010', hs:'short', brow:'#151010', shirt:'#c9b48a', outfit:'sweater', pants:'#3b3328', glasses:true, react:'disgust', herring:'ceiling', line:'Ich bitte vielmals um Entschuldigung.'},
+ {name:'Marie', skin:'#f3cdb0', hair:'#e2bf62', hs:'ponytail', brow:'#b8913e', shirt:'#d9668f', outfit:'jacket', pants:'#2e2e3e', earrings:true, react:'nose', line:'Das bleibt unter uns, ja?'},
+ {name:'Luca', skin:'#e3b08a', hair:'#2a1c14', hs:'cap', capColor:'#c8302a', brow:'#2a1c14', shirt:'#c8302a', outfit:'tee', pants:'#2b2b33', stubble:true, react:'annoyed', herring:'whistle', line:'Die Salamipizza war für mich.'}
+];
+const OUTRAGE = ['Wie bitte?!','Unverschämtheit!','Ich doch nicht!','Frechheit!','Das war ich NICHT.'];
+const ONO = ['PFRRRT','prööt','FFFFFT','TRÖÖT','pfrrrlll','BRRRAP'];
+
+/* Plätze: hintere Reihe (row 0) und vordere Reihe (row 1). mx/mz = Position in Metern für die Geruchsausbreitung */
+const SLOTS = [
+ {x:300,y:200,s:.76,row:0,mx:-1.2,mz:0},{x:480,y:196,s:.76,row:0,mx:0,mz:0},{x:660,y:200,s:.76,row:0,mx:1.2,mz:0},
+ {x:228,y:342,s:1,row:1,mx:-1.3,mz:1.2},{x:480,y:348,s:1,row:1,mx:0,mz:1.2},{x:732,y:342,s:1,row:1,mx:1.3,mz:1.2}
+];
+
+/* ---------- Mimik ---------- */
+// bh Brauenhöhe, ba Brauenwinkel (- böse, + besorgt), eo Augen offen, px/py Pupillen, mc Mundkurve, mo Mund offen,
+// mw Mundbreite, wh Pfeifen, nw Nasenrümpfen, bl Rot, sw Schweiß, tilt Kopfneigung, hn Hand an Nase, hf Fächeln
+const NEUTRAL = {bh:0,ba:0,eo:1,px:0,py:0,mc:.05,mo:0,mw:.8,wh:0,nw:0,bl:0,sw:0,tilt:0,hn:0,hf:0};
+const PRE = {
+ neutral:{},
+ lookup:{py:-.9,bh:.15},
+ bored:{eo:.6,py:.4,mc:-.1,px:.3},
+ sniff:{bh:.7,ba:.2,eo:1.15,nw:.55,mc:-.1,mw:.6},
+ disgust:{bh:-.2,ba:-.8,eo:.55,nw:1,mc:-.9,mo:.25,mw:1},
+ holdnose:{bh:-.2,ba:-.7,eo:.4,nw:1,mc:-.6,mw:.8,hn:1},
+ fan:{bh:-.2,ba:-.8,eo:.5,nw:1,mc:-.8,mo:.2,mw:1,hf:1},
+ annoyed:{bh:-.2,ba:-.45,eo:.75,nw:.5,mc:-.5,mw:.9},
+ glare:{bh:-.3,ba:-.9,eo:.72,mc:-.5,nw:.35},
+ ceiling:{bh:.95,ba:.3,eo:1.15,py:-1,px:.35,mc:.15,mw:.55},
+ whistle:{bh:.6,ba:.2,eo:1,py:-.6,px:-.5,wh:1,mw:.5},
+ relief:{bh:.3,eo:.03,mc:.75,mw:.95,tilt:.08},
+ avoid:{bh:-.1,ba:.4,eo:.8,py:.9,px:.9,mc:-.1,tilt:.12},
+ nervous:{bh:.4,ba:.6,eo:1.25,mc:-.15,mw:.7},
+ fake:{bh:-.4,ba:-1,eo:.3,nw:1,mc:-1,mo:.55,mw:1.15,hf:1},
+ caught:{bh:.4,ba:.7,eo:.9,py:.6,mc:.35,mw:.85,bl:1,sw:.8},
+ smug:{bh:.2,eo:.6,mc:.55,mw:.9,px:-.4},
+ outraged:{bh:-.5,ba:-1,eo:1.2,mc:-.7,mo:.75,mw:.9}
+};
+const KEYS = Object.keys(NEUTRAL);
+
+/* ---------- Spielzustand ---------- */
+const G = {state:'demo',level:0,score:0,streak:0,clips:3,best:0,t:0,tf:0,tEnd:0,people:[],culprit:-1,hover:-1,
+  staticT:0,onoT:-1,onoText:'',silent:false,tells:[],herrings:[],revealT:-1,muted:false};
+try{ G.best = parseInt(localStorage.getItem('whg-best')||'0',10)||0; }catch(e){}
+
+function makePeople(n){
+  const cast = shuffle(CAST.slice()).slice(0,n);
+  const slots = shuffle(SLOTS.slice()).slice(0,n).sort((a,b)=>a.row-b.row || a.x-b.x);
+  G.people = slots.map((sl,i)=>({c:cast[i], ...sl, e:{...NEUTRAL}, segs:[], ov:[], seed:Math.random()*10,
+    blinkAt:rand(.5,3), override:null, overrideOpts:null, bubble:null}));
+}
+function idleSegs(p, from, to){
+  let t = from + rand(.3,2);
+  while(t < to){
+    const r = Math.random();
+    if(r < .45) p.segs.push({at:t,dur:rand(.8,1.6),pre:'lookup'});
+    else if(r < .75) p.segs.push({at:t,dur:rand(.6,1.2),pre:'neutral',opts:{px:rand(-.8,.8),py:rand(-.2,.4)}});
+    else if(p.c.headphones || r < .85) p.segs.push({at:t,dur:rand(1,2),pre:'bored'});
+    t += rand(1.8,3.8);
+  }
+}
+const dist = (a,b) => Math.hypot(a.mx-b.mx, a.mz-b.mz);
+
+function difficulty(L){
+  return {
+    n: Math.min(6, 3 + Math.floor((L-1)/2)),
+    tells: L<=2 ? 3 : L<=5 ? 2 : 1,
+    timing: L<=5 ? pick(['none','early','late']) : L<=8 ? pick(['none','early','late','plausible','plausible']) : 'plausible',
+    herrings: L>=7 ? 2 : L>=3 ? 1 : 0,
+    acc: Math.max(.35, .88 - L*.06),
+    win: Math.max(5.6, 9.6 - L*.4),
+    silent: L>=4 && Math.random()<.35
+  };
+}
+
+function buildRound(){
+  const D = difficulty(G.level);
+  makePeople(D.n);
+  G.culprit = Math.floor(Math.random()*D.n);
+  G.tf = rand(1.6, 2.8);
+  G.tEnd = G.tf + D.win;
+  G.silent = D.silent;
+  G.tells = []; G.herrings = [];
+  const P = G.people, cu = P[G.culprit], tf = G.tf;
+  P.forEach(p => idleSegs(p, 0, tf - .2));
+
+  // Unschuldige
+  let maxR = 0;
+  const innocents = P.map((p,i)=>i).filter(i=>i!==G.culprit);
+  const herringIdx = shuffle(innocents.slice()).slice(0, D.herrings);
+  innocents.forEach(i => {
+    const p = P[i];
+    if(herringIdx.includes(i)){
+      const kind = p.c.herring || pick(['sweat','ceiling','whistle']);
+      if(kind==='sweat') p.ov.push({at:tf+rand(.6,1.4),k:'sw',v:.85});
+      if(kind==='ceiling') p.segs.push({at:tf+rand(.2,.6),dur:1.3,pre:'ceiling'});
+      if(kind==='whistle') p.segs.push({at:tf+rand(.2,.5),dur:1.6,pre:'whistle'});
+      G.herrings.push({name:p.c.name, kind});
+    }
+    const d = dist(p, cu);
+    const r = tf + .55 + d*1.0 + rand(0,.35);
+    maxR = Math.max(maxR, r);
+    const main = p.c.react==='nose' ? 'holdnose' : p.c.react==='fan' ? 'fan' : p.c.react==='annoyed' ? 'annoyed' : 'disgust';
+    p.segs.push({at:r,dur:.55,pre:'sniff',opts:{px:rand(-.6,.6)}});
+    p.segs.push({at:r+.55,dur:1.7,pre:main});
+    let target = G.culprit;
+    if(Math.random() > D.acc){ const others = P.map((q,k)=>k).filter(k=>k!==i && k!==G.culprit); if(others.length) target = pick(others); }
+    p.segs.push({at:r+2.25,dur:1.4,pre:'glare',opts:{glare:target}});
+    p.segs.push({at:r+3.65,dur:60,pre:main==='holdnose'?'holdnose':'annoyed'});
+  });
+
+  // Schuldiger: zuerst das Ekel-Timing, dann die sichtbaren Ticks (die überlagern)
+  const timing = D.timing;
+  if(timing==='early') cu.segs.push({at:tf+.1,dur:1.6,pre:'fake'});
+  if(timing==='late') cu.segs.push({at:maxR+1.0,dur:2.2,pre:'fake'});
+  if(timing==='plausible') cu.segs.push({at:tf+rand(1.3,1.8),dur:2,pre:'disgust'}, {at:tf+3.8,dur:60,pre:'annoyed'});
+  G.tells.push(timing);
+  let pool = ['whistle','ceiling','sweat','blush','avoid'];
+  if(G.level<=5 && timing!=='early') pool.push('relief','relief');
+  pool = shuffle(pool);
+  const chosen = [];
+  for(const k of pool){ if(chosen.length>=D.tells) break; if(!chosen.includes(k)) chosen.push(k); }
+  chosen.sort((a,b)=> (a==='relief'?-1:0) - (b==='relief'?-1:0));
+  let cur = tf + (timing==='early' ? 1.8 : .1);
+  chosen.forEach(k => {
+    if(k==='relief'){ cu.segs.push({at:tf+.08,dur:.9,pre:'relief'}); cur = Math.max(cur, tf+1.1); }
+    else if(k==='whistle'){ cu.segs.push({at:cur+rand(.1,.4),dur:2.3,pre:'whistle'}); cur += 2.8; }
+    else if(k==='ceiling'){ cu.segs.push({at:cur+rand(.1,.4),dur:1.8,pre:'ceiling'}); cur += 2.3; }
+    else if(k==='avoid'){ cu.segs.push({at:cur+rand(.1,.4),dur:2,pre:'avoid'}); cur += 2.5; }
+    else if(k==='sweat'){ cu.ov.push({at:tf+1.1,k:'sw',v:.95}); cu.segs.push({at:cur+.2,dur:1.3,pre:'nervous',opts:{dart:true}}); cur += 1.7; }
+    else if(k==='blush'){ cu.ov.push({at:tf+.7,k:'bl',v:.9}); }
+    G.tells.push(k);
+  });
+  // nach den Ticks: unauffällig nach unten oder zur Anzeige schauen
+  if(timing==='none' || timing==='early') cu.segs.push({at:cur+.3,dur:60,pre:'lookup'});
+}
+
+/* ---------- Audio ---------- */
+let ac = null, master = null, hum = null, nbuf = null;
+function audio(){
+  if(!ac){ try{ ac = new (window.AudioContext||window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = .7; master.connect(ac.destination); }catch(e){ ac = null; } }
+  if(ac && ac.state === 'suspended') ac.resume().catch(()=>{});
+  return ac;
+}
+function noise(a){
+  if(nbuf) return nbuf;
+  nbuf = a.createBuffer(1, a.sampleRate*2, a.sampleRate);
+  const d = nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  return nbuf;
+}
+function playFart(){
+  const a = audio(); if(!a || G.muted) return;
+  const t0 = a.currentTime + .02, dur = rand(.5,1.3);
+  const src = a.createBufferSource(); src.buffer = noise(a);
+  const bp = a.createBiquadFilter(); bp.type='bandpass'; bp.Q.value = 2.5;
+  bp.frequency.setValueAtTime(rand(200,420), t0); bp.frequency.exponentialRampToValueAtTime(rand(70,110), t0+dur);
+  const am = a.createGain(); am.gain.value = .5;
+  const lfo = a.createOscillator(); lfo.type='square';
+  lfo.frequency.setValueAtTime(rand(18,38), t0); lfo.frequency.linearRampToValueAtTime(rand(8,16), t0+dur);
+  const lg = a.createGain(); lg.gain.value = .5; lfo.connect(lg); lg.connect(am.gain);
+  const osc = a.createOscillator(); osc.type='sawtooth';
+  osc.frequency.setValueAtTime(rand(85,135), t0); osc.frequency.exponentialRampToValueAtTime(rand(38,55), t0+dur);
+  const lp = a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 520;
+  const og = a.createGain(); og.gain.value = .45;
+  const env = a.createGain();
+  env.gain.setValueAtTime(0, t0); env.gain.linearRampToValueAtTime(.9, t0+.03);
+  env.gain.setValueAtTime(.8, t0+dur*.7); env.gain.exponentialRampToValueAtTime(.001, t0+dur);
+  src.connect(bp); bp.connect(am); osc.connect(lp); lp.connect(og); og.connect(am); am.connect(env); env.connect(master);
+  [src,lfo,osc].forEach(n=>{ n.start(t0); n.stop(t0+dur+.05); });
+}
+function tone(f, dur, type='sine', vol=.25, delay=0){
+  const a = audio(); if(!a || G.muted) return;
+  const t0 = a.currentTime + delay; const o = a.createOscillator(); const g = a.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+.01); g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0+dur+.02);
+}
+const ding = () => { tone(988,.9,'sine',.22); tone(784,1.2,'sine',.22,.28); };
+const buzz = () => { tone(110,.45,'square',.12); tone(104,.45,'square',.12,.05); };
+const yay = () => { tone(660,.15,'triangle',.2); tone(880,.15,'triangle',.2,.12); tone(1175,.3,'triangle',.2,.24); };
+function startHum(){
+  const a = audio(); if(!a || G.muted || hum) return;
+  const o = a.createOscillator(), g = a.createGain(); o.type='sine'; o.frequency.value = 52;
+  g.gain.setValueAtTime(0,a.currentTime); g.gain.linearRampToValueAtTime(.05,a.currentTime+.6);
+  o.connect(g); g.connect(master); o.start(); hum = {o,g};
+}
+function stopHum(){
+  if(!hum || !ac) { hum = null; return; }
+  const {o,g} = hum; g.gain.cancelScheduledValues(ac.currentTime); g.gain.setValueAtTime(g.gain.value, ac.currentTime);
+  g.gain.linearRampToValueAtTime(0, ac.currentTime+.3); o.stop(ac.currentTime+.35); hum = null;
+}
+
+/* ---------- Ablauf ---------- */
+const $ = id => document.getElementById(id);
+function say(title, body, list, btn){
+  $('msgTitle').innerHTML = title;
+  $('msgBody').innerHTML = body || '';
+  $('msgBody').hidden = !body;
+  const ul = $('msgList'); ul.innerHTML = '';
+  (list||[]).forEach(li => { const el = document.createElement('li'); el.innerHTML = li.html || li; if(li.cls) el.className = li.cls; ul.appendChild(el); });
+  ul.hidden = !(list && list.length);
+  $('nextBtn').hidden = !btn; if(btn) $('nextLabel').textContent = btn;
+}
+function floorName(n){ return n<=0 ? 'EG' : String(n).padStart(2,'0'); }
+
+function newGame(){
+  G.level = 0; G.score = 0; G.streak = 0; G.clips = 3;
+  nextRound();
+}
+function nextRound(){
+  G.level++;
+  buildRound();
+  G.state = 'static'; G.staticT = .7; G.t = 0; G.onoT = -1; G.revealT = -1; G.hover = -1;
+  $('startOverlay').hidden = true;
+  say(`${floorName(G.level-1)} → ${floorName(G.level)}: Türen schließen.`,
+      `${G.people.length} Fahrgäste an Bord. Noch riecht alles nach Teppich und Messing.`, null, null);
+}
+function doFart(){
+  G.state = 'observe'; G.onoT = G.t;
+  if(G.silent){ G.onoText = '… riecht’s hier nach Ei?'; }
+  else { G.onoText = pick(ONO); playFart(); }
+  say(G.silent ? 'Ein leiser, aber tödlicher.' : 'Da war was!',
+      'Beobachte, wer es zuerst riecht und wer sich seltsam verhält. Tippe auf den Schuldigen, bevor sich die Tür öffnet.', null, null);
+}
+const TELL_TEXT = {
+  none: n => `<b>${n}</b> hat sich als einzige Person überhaupt nicht geekelt.`,
+  early: n => `<b>${n}</b> hat die Nase gerümpft, bevor der Geruch überhaupt da sein konnte.`,
+  late: n => `<b>${n}</b> hat sich als Letztes und völlig übertrieben geekelt.`,
+  plausible: n => `<b>${n}</b> hat sich zwar geekelt, aber die Nachbarn haben es vorher gerochen.`,
+  whistle: n => `<b>${n}</b> hat betont unschuldig gepfiffen.`,
+  ceiling: n => `<b>${n}</b> hat auffällig zur Decke geschaut.`,
+  sweat: n => `<b>${n}</b> hat angefangen zu schwitzen und nervös geguckt.`,
+  blush: n => `<b>${n}</b> ist rot geworden.`,
+  avoid: n => `<b>${n}</b> ist allen Blicken ausgewichen.`,
+  relief: n => `<b>${n}</b> hat kurz erleichtert die Augen geschlossen.`
+};
+const HERRING_TEXT = {
+  sweat: n => `Falsche Fährte: ${n} hat nur geschwitzt, weil es warm ist.`,
+  ceiling: n => `Falsche Fährte: ${n} hat bloß auf die Stockwerksanzeige geschaut.`,
+  whistle: n => `Falsche Fährte: ${n} hat zur Musik gepfiffen.`
+};
+function accuse(i){ if(G.state==='observe') resolve(i); }
+function resolve(i){
+  G.state = 'resolved'; G.revealT = G.t; stopHum();
+  const P = G.people, cu = P[G.culprit], name = cu.c.name;
+  const correct = i === G.culprit, timeout = i < 0;
+  P.forEach((p,k) => { p.override = 'glare'; p.overrideOpts = {glare:G.culprit}; p.bubble = null; });
+  cu.override = correct ? 'caught' : 'smug'; cu.overrideOpts = null;
+  cu.bubble = correct ? cu.c.line : timeout ? 'Puh. Glück gehabt.' : 'Hihi.';
+  if(!correct && !timeout){ const a = P[i]; a.override = 'outraged'; a.overrideOpts = {glare:G.culprit}; a.bubble = pick(OUTRAGE); }
+  const reasons = G.tells.map(k => TELL_TEXT[k](name));
+  reasons.push(`Die Leute direkt neben ${name} haben es zuerst gerochen.`);
+  const list = reasons.map(r => ({html:r})).concat(G.herrings.map(h => ({html:HERRING_TEXT[h.kind](h.name), cls:'fake'})));
+  let title, body;
+  if(correct){
+    const left = Math.max(0, G.tEnd - G.t);
+    const pts = 100 + Math.round(left*12) + 25*G.streak;
+    G.score += pts; G.streak++;
+    title = `<span class="good">Erwischt!</span> Es war ${name}.`;
+    body = `+${pts} Punkte (${left.toFixed(1).replace('.',',')} s vor der Tür${G.streak>1?`, Serie ×${G.streak}`:''}).`;
+    yay();
+  } else {
+    G.clips--; G.streak = 0;
+    title = timeout ? `<span class="bad">Tür auf.</span> ${name} ist entwischt.` : `<span class="bad">Falsch!</span> ${P[i].c.name} ist empört. Es war ${name}.`;
+    body = G.clips > 0 ? `Eine Nasenklammer weniger. Noch ${G.clips}.` : '';
+    buzz();
+  }
+  ding();
+  if(G.clips <= 0){
+    let rec = '';
+    if(G.score > G.best){ G.best = G.score; rec = ' Neuer Rekord!'; try{ localStorage.setItem('whg-best', String(G.best)); }catch(e){} }
+    body = `Schichtende im ${G.level}. Stock mit ${G.score} Punkten.${rec} Rekord: ${G.best}.`;
+    say(title, body, list, 'Neue Schicht');
+    G.over = true;
+  } else {
+    say(title, body, list, `Weiter in den ${G.level+1}. Stock`);
+    G.over = false;
+  }
+}
+$('startBtn').addEventListener('click', () => { audio(); newGame(); });
+$('nextBtn').addEventListener('click', () => { audio(); if(G.over) newGame(); else nextRound(); });
+$('resetBtn').addEventListener('click', () => { audio(); stopHum(); newGame(); });
+$('soundBtn').addEventListener('click', e => {
+  G.muted = !G.muted; e.currentTarget.setAttribute('aria-pressed', String(!G.muted));
+  if(G.muted) stopHum(); else { audio(); if(G.state==='riding'||G.state==='observe') startHum(); }
+});
+
+function toCanvas(ev){ const r = cv.getBoundingClientRect(); return {x:(ev.clientX-r.left)/r.width*W, y:(ev.clientY-r.top)/r.height*H}; }
+function hit(ev){
+  const {x,y} = toCanvas(ev);
+  for(let i=G.people.length-1;i>=0;i--){
+    const p = G.people[i], s = p.s;
+    const hx = (x-p.x)/(48*s), hy = (y-p.y)/(54*s);
+    if(hx*hx + hy*hy < 1) return i;
+    if(Math.abs(x-p.x) < 80*s && y > p.y+45*s && y < p.y+235*s) return i;
+  }
+  return -1;
+}
+cv.addEventListener('pointerdown', ev => {
+  const i = hit(ev); if(i < 0) return;
+  if(G.state === 'observe') accuse(i);
+  else if(G.state === 'riding') say('Noch ist nichts passiert.', 'Abwarten. Die Fahrt hat gerade erst begonnen.', null, null);
+});
+cv.addEventListener('pointermove', ev => {
+  G.hover = hit(ev);
+  cv.style.cursor = G.hover >= 0 && G.state === 'observe' ? 'crosshair' : 'default';
+});
+cv.addEventListener('pointerleave', () => { G.hover = -1; });
+
+/* ---------- Update ---------- */
+function activeSeg(p, t){ let cur = null; for(const s of p.segs) if(t >= s.at && t < s.at + s.dur) cur = s; return cur; }
+function ovVal(p, k, t){ let v = 0; for(const o of p.ov) if(o.k===k && t >= o.at) v = o.v; return v; }
+function lookAt(p, q){ const dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx,dy) || 1; return {px:dx/l, py:clamp(dy/l*.8,-1,1)}; }
+function target(p, t){
+  let preName = 'neutral', opts = null;
+  if(p.override){ preName = p.override; opts = p.overrideOpts; }
+  else { const s = activeSeg(p, t); if(s){ preName = s.pre; opts = s.opts; } }
+  const tg = Object.assign({}, NEUTRAL, PRE[preName]);
+  if(opts){
+    if(opts.px != null) tg.px = opts.px;
+    if(opts.py != null) tg.py = opts.py;
+    if(opts.glare != null && G.people[opts.glare] && G.people[opts.glare] !== p){ Object.assign(tg, lookAt(p, G.people[opts.glare])); }
+    if(opts.dart) tg.px = Math.sin(t*7 + p.seed)*.9;
+  }
+  if(!p.override){ tg.bl = Math.max(tg.bl, ovVal(p,'bl',t)); tg.sw = Math.max(tg.sw, ovVal(p,'sw',t)); }
+  return tg;
+}
+function update(dt){
+  G.t += dt;
+  if(G.state === 'static'){ G.staticT -= dt; if(G.staticT <= 0){ G.state = 'riding'; G.t = 0; startHum(); } }
+  else if(G.state === 'riding' && G.t >= G.tf) doFart();
+  else if(G.state === 'observe' && G.t >= G.tEnd) resolve(-1);
+  const k = 1 - Math.exp(-dt*9);
+  for(const p of G.people){
+    const tg = target(p, G.t);
+    for(const key of KEYS) p.e[key] += (tg[key] - p.e[key]) * k;
+    if(G.t > p.blinkAt + .13) p.blinkAt = G.t + rand(2,5);
+  }
+}
+
+/* ---------- Zeichnen ---------- */
+function poly(pts, fill){ ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); }
+function drawCab(){
+  poly([[0,0],[960,0],[790,40],[170,40]], '#d6cfbf');
+  poly([[300,6],[660,6],[640,30],[320,30]], '#fffbe6');
+  const lg = ctx.createRadialGradient(480,20,10,480,60,420); lg.addColorStop(0,'rgba(255,245,210,.35)'); lg.addColorStop(1,'rgba(255,245,210,0)');
+  // Rückwand: Holzpaneele
+  for(let i=0;i<6;i++){ ctx.fillStyle = i%2 ? '#8e5c35' : '#966339'; ctx.fillRect(170+i*103.33,40,103.4,360); }
+  ctx.strokeStyle = 'rgba(40,20,8,.35)'; ctx.lineWidth = 2;
+  for(let i=1;i<6;i++){ ctx.beginPath(); ctx.moveTo(170+i*103.33,40); ctx.lineTo(170+i*103.33,400); ctx.stroke(); }
+  // Seitenwände
+  poly([[0,0],[170,40],[170,400],[0,600]], '#7b4e2b');
+  poly([[960,0],[790,40],[790,400],[960,600]], '#7b4e2b');
+  ctx.strokeStyle = 'rgba(40,20,8,.35)';
+  [60,115].forEach(x => { ctx.beginPath(); ctx.moveTo(x,40*x/170); ctx.lineTo(x,600-200*x/170); ctx.stroke(); const xr = 960-x; ctx.beginPath(); ctx.moveTo(xr,40*x/170); ctx.lineTo(xr,600-200*x/170); ctx.stroke(); });
+  // Bedientableau rechts
+  poly([[842,150],[896,136],[896,350],[842,330]], '#b9bfc3');
+  for(let j=0;j<6;j++){ const y = 170 + j*26; ctx.beginPath(); ctx.arc(869, y + 2, 7, 0, Math.PI*2); ctx.fillStyle = j===5-Math.min(5,G.level%6) ? '#ffad35' : '#7d868c'; ctx.fill(); }
+  // Boden
+  poly([[170,400],[790,400],[960,600],[0,600]], '#585c63');
+  ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 3;
+  for(let i=1;i<8;i++){ const xb = 170 + i*77.5, xf = i*120; ctx.beginPath(); ctx.moveTo(xb,400); ctx.lineTo(xf,600); ctx.stroke(); }
+  const sh = ctx.createLinearGradient(0,390,0,430); sh.addColorStop(0,'rgba(0,0,0,.35)'); sh.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = sh; ctx.fillRect(170,400,620,30);
+  // Handlauf
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#a8842f'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(170,290); ctx.lineTo(790,290); ctx.stroke();
+  ctx.strokeStyle = '#e6c672'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(170,287); ctx.lineTo(790,287); ctx.stroke();
+  ctx.strokeStyle = '#a8842f'; ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(170,290); ctx.lineTo(0,370); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(790,290); ctx.lineTo(960,370); ctx.stroke();
+  ctx.fillStyle = lg; ctx.fillRect(0,0,W,H);
+}
+
+function capPath(cy, rx, ry, cut){ // obere Haarkappe bis Höhe cut
+  ctx.save(); ctx.beginPath(); ctx.rect(-80,-120,160,120+cut); ctx.clip();
+  ctx.beginPath(); ctx.ellipse(0,cy,rx,ry,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+}
+function hairBack(c){
+  ctx.fillStyle = c.hair;
+  if(c.hs==='long'){ ctx.beginPath(); ctx.ellipse(0,0,47,52,0,Math.PI,0); ctx.lineTo(48,58); ctx.quadraticCurveTo(0,70,-48,58); ctx.closePath(); ctx.fill(); }
+  if(c.hs==='bun'){ ctx.beginPath(); ctx.arc(0,-50,17,0,Math.PI*2); ctx.fill(); }
+  if(c.hs==='ponytail'){ ctx.save(); ctx.translate(40,-18); ctx.rotate(.5); ctx.beginPath(); ctx.ellipse(0,18,12,30,0,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  if(c.hs==='curly'){ for(let a=0;a<=10;a++){ const ang = Math.PI*(.95 + a*.11); ctx.beginPath(); ctx.arc(Math.cos(ang)*44, Math.sin(ang)*46+4, 15, 0, Math.PI*2); ctx.fill(); } }
+}
+function hairFront(c, time){
+  ctx.fillStyle = c.hair;
+  switch(c.hs){
+    case 'bun': case 'short': case 'ponytail': case 'long':
+      capPath(-10, 43, 42, -16);
+      if(c.hs==='long'){ ctx.fillRect(-46,-18,10,50); ctx.fillRect(36,-18,10,50); }
+      if(c.hs==='short'){ ctx.beginPath(); ctx.ellipse(-10,-22,22,8,-.2,0,Math.PI*2); ctx.fill(); }
+      break;
+    case 'curly': capPath(-12,44,40,-18); for(let a=0;a<6;a++){ ctx.beginPath(); ctx.arc(-30+a*12,-30,9,0,Math.PI*2); ctx.fill(); } break;
+    case 'messy':
+      capPath(-10,43,42,-14);
+      ctx.beginPath(); for(let a=0;a<7;a++){ const x=-36+a*12; ctx.moveTo(x-7,-34); ctx.lineTo(x+2,-60+(a%2)*8); ctx.lineTo(x+9,-34); } ctx.fill(); break;
+    case 'receding':
+      ctx.beginPath(); ctx.ellipse(-38,-12,7,22,.1,0,Math.PI*2); ctx.ellipse(38,-12,7,22,-.1,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha = .55; capPath(-12,40,38,-36); ctx.globalAlpha = 1; break;
+    case 'bald':
+      ctx.beginPath(); ctx.ellipse(-38,-2,6,16,0,0,Math.PI*2); ctx.ellipse(38,-2,6,16,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.beginPath(); ctx.ellipse(-12,-32,12,6,-.4,0,Math.PI*2); ctx.fill(); break;
+    case 'helmet':
+      ctx.fillStyle = '#f2c230'; ctx.beginPath(); ctx.ellipse(0,-22,47,36,0,Math.PI,0); ctx.fill();
+      ctx.fillRect(-54,-25,108,9); ctx.fillStyle = '#d9a91c'; ctx.fillRect(-6,-56,12,32); break;
+    case 'cap':
+      ctx.fillStyle = c.capColor; ctx.beginPath(); ctx.ellipse(0,-20,44,32,0,Math.PI,0); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6,-21,48,9,0,0,Math.PI); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = "800 16px 'Bricolage Grotesque', sans-serif"; ctx.textAlign='center'; ctx.fillText('P',0,-30); break;
+  }
+}
+function drawBody(p){
+  const c = p.c;
+  if(p.row === 0){
+    ctx.fillStyle = c.pants; ctx.fillRect(-36,220,30,118); ctx.fillRect(6,220,30,118);
+    ctx.fillStyle = '#1c1c1f'; ctx.beginPath(); ctx.ellipse(-22,340,22,9,0,0,Math.PI*2); ctx.ellipse(22,340,22,9,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = c.skin; ctx.fillRect(-13,28,26,32);
+  if(c.outfit==='hoodie'){ ctx.fillStyle = c.shirt; ctx.beginPath(); ctx.ellipse(0,52,46,16,0,0,Math.PI*2); ctx.fill(); }
+  ctx.fillStyle = c.shirt;
+  ctx.beginPath(); ctx.moveTo(-28,50); ctx.quadraticCurveTo(-80,58,-86,104); ctx.lineTo(-90,232); ctx.lineTo(90,232); ctx.lineTo(86,104); ctx.quadraticCurveTo(80,58,28,50); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-62,110); ctx.lineTo(-66,230); ctx.moveTo(62,110); ctx.lineTo(66,230); ctx.stroke();
+  switch(c.outfit){
+    case 'suit':
+      ctx.fillStyle = '#f2f2ee'; ctx.beginPath(); ctx.moveTo(-22,50); ctx.lineTo(0,120); ctx.lineTo(22,50); ctx.fill();
+      ctx.fillStyle = c.tie; ctx.beginPath(); ctx.moveTo(-6,58); ctx.lineTo(6,58); ctx.lineTo(9,110); ctx.lineTo(0,120); ctx.lineTo(-9,110); ctx.fill(); break;
+    case 'hoodie':
+      ctx.strokeStyle = '#e8e8e0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-10,62); ctx.lineTo(-12,100); ctx.moveTo(10,62); ctx.lineTo(12,100); ctx.stroke(); break;
+    case 'vest':
+      ctx.fillStyle = '#d7dbe0'; ctx.fillRect(-86,130,176,14); ctx.fillRect(-86,170,176,14);
+      ctx.fillStyle = '#5a6a80'; ctx.beginPath(); ctx.moveTo(-18,50); ctx.lineTo(0,90); ctx.lineTo(18,50); ctx.fill(); break;
+    case 'coat':
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-24,52); ctx.lineTo(-4,130); ctx.lineTo(-4,232); ctx.moveTo(24,52); ctx.lineTo(4,130); ctx.stroke();
+      ctx.fillStyle = '#5c86a8'; ctx.fillRect(-12,58,24,60); break;
+    case 'stripes':
+      ctx.save(); ctx.clip(); ctx.fillStyle = '#e9e4d8'; for(let y=70;y<232;y+=22) ctx.fillRect(-100,y,200,9); ctx.restore(); break;
+    case 'overall':
+      ctx.fillStyle = '#e6e2d6'; ctx.beginPath(); ctx.moveTo(-24,50); ctx.lineTo(0,80); ctx.lineTo(24,50); ctx.fill();
+      ctx.strokeStyle = '#24467a'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(-34,58); ctx.lineTo(-30,140); ctx.moveTo(34,58); ctx.lineTo(30,140); ctx.stroke();
+      ctx.fillStyle = '#c9a24a'; ctx.beginPath(); ctx.arc(-30,130,4,0,7); ctx.arc(30,130,4,0,7); ctx.fill(); break;
+    case 'cardigan':
+      ctx.fillStyle = '#efe7d6'; ctx.beginPath(); ctx.moveTo(-20,50); ctx.lineTo(0,100); ctx.lineTo(20,50); ctx.fill();
+      ctx.fillStyle = '#e8d9a8'; [110,140,170].forEach(y=>{ ctx.beginPath(); ctx.arc(0,y,4,0,7); ctx.fill(); }); break;
+    case 'sweater':
+      ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(0,52,26,10,0,0,Math.PI); ctx.stroke(); break;
+    case 'jacket':
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0,58); ctx.lineTo(0,232); ctx.stroke();
+      ctx.fillStyle = '#f5f1ea'; ctx.beginPath(); ctx.moveTo(-18,50); ctx.lineTo(0,74); ctx.lineTo(18,50); ctx.fill(); break;
+    case 'tee':
+      ctx.fillStyle = '#fff'; ctx.font = "800 22px 'Bricolage Grotesque', sans-serif"; ctx.textAlign='center'; ctx.fillText('PIZZA',0,120); break;
+  }
+}
+function drawFace(p, time){
+  const c = p.c, e = p.e;
+  const blinking = time >= p.blinkAt && time < p.blinkAt + .13;
+  const eo = blinking ? .04 : e.eo;
+  // Ohren und Kopf
+  ctx.fillStyle = c.skin;
+  ctx.beginPath(); ctx.ellipse(-40,4,7,11,0,0,Math.PI*2); ctx.ellipse(40,4,7,11,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,0,40,47,0,0,Math.PI*2); ctx.fill();
+  if(c.stubble){ ctx.fillStyle = 'rgba(40,30,25,.18)'; ctx.beginPath(); ctx.ellipse(0,22,32,24,0,0,Math.PI); ctx.fill(); }
+  // Rot werden
+  if(e.bl > .02){ ctx.fillStyle = `rgba(235,80,80,${e.bl*.5})`; ctx.beginPath(); ctx.ellipse(-23,14,10,7,0,0,Math.PI*2); ctx.ellipse(23,14,10,7,0,0,Math.PI*2); ctx.fill(); }
+  // Augen
+  [-1,1].forEach(sg => {
+    const ex = sg*15, ey = -4;
+    if(eo < .16){
+      ctx.strokeStyle = '#2a1c16'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
+      if(e.mc > .3){ ctx.arc(ex, ey-2, 7, .15*Math.PI, .85*Math.PI); } else { ctx.moveTo(ex-8,ey); ctx.lineTo(ex+8,ey); }
+      ctx.stroke();
+    } else {
+      const ry = 9*eo;
+      ctx.save(); ctx.beginPath(); ctx.ellipse(ex,ey,8.5,ry,0,0,Math.PI*2); ctx.fillStyle = '#fbfbf7'; ctx.fill(); ctx.clip();
+      ctx.fillStyle = '#2a1c16'; ctx.beginPath(); ctx.arc(ex + e.px*4, ey + e.py*4, 4.4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.beginPath(); ctx.arc(ex + e.px*4 - 1.4, ey + e.py*4 - 1.6, 1.2, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  });
+  // Brauen
+  ctx.strokeStyle = c.brow; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+  const by = -19 - e.bh*6;
+  [-1,1].forEach(sg => { ctx.beginPath(); ctx.moveTo(sg*6, by - e.ba*5); ctx.lineTo(sg*24, by + e.ba*2); ctx.stroke(); });
+  // Nase
+  ctx.strokeStyle = 'rgba(90,45,25,.45)'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(-1,2); ctx.quadraticCurveTo(-7,14,1,15); ctx.stroke();
+  if(e.nw > .05){
+    ctx.strokeStyle = `rgba(90,45,25,${e.nw*.55})`; ctx.lineWidth = 2;
+    [-1,1].forEach(sg => { ctx.beginPath(); ctx.moveTo(sg*4,-2); ctx.lineTo(sg*9,3); ctx.moveTo(sg*5,3); ctx.lineTo(sg*10,7); ctx.stroke(); });
+  }
+  if(c.mustache){ ctx.fillStyle = c.hair; ctx.beginPath(); ctx.moveTo(0,17); ctx.quadraticCurveTo(-18,14,-20,24); ctx.quadraticCurveTo(-8,20,0,21); ctx.quadraticCurveTo(8,20,20,24); ctx.quadraticCurveTo(18,14,0,17); ctx.fill(); }
+  // Mund
+  const my = 27, w = 13*e.mw;
+  if(e.wh > .5){
+    ctx.fillStyle = '#5a1e1a'; ctx.beginPath(); ctx.ellipse(0,my,4,5,0,0,Math.PI*2); ctx.fill();
+  } else {
+    const cy = my - e.mc*6, ctrl = my + e.mc*9;
+    if(e.mo > .08){
+      ctx.fillStyle = '#5a1e1a'; ctx.beginPath(); ctx.moveTo(-w,cy); ctx.quadraticCurveTo(0,ctrl - e.mo*10,w,cy); ctx.quadraticCurveTo(0,ctrl + e.mo*14,-w,cy); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#5a1e1a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-w,cy); ctx.quadraticCurveTo(0,ctrl,w,cy); ctx.stroke();
+    }
+  }
+  // Accessoires
+  if(c.glasses){ ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(-15,-4,12,0,Math.PI*2); ctx.moveTo(27,-4); ctx.arc(15,-4,12,0,Math.PI*2); ctx.moveTo(-3,-5); ctx.lineTo(3,-5); ctx.stroke(); }
+  if(c.earrings){ ctx.fillStyle = '#e0b84a'; ctx.beginPath(); ctx.arc(-41,17,3.5,0,7); ctx.arc(41,17,3.5,0,7); ctx.fill(); }
+  hairFront(c, time);
+  if(c.headphones){
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(0,-6,46,50,0,Math.PI*1.05,Math.PI*1.95); ctx.stroke();
+    ctx.fillStyle = '#e04848'; ctx.beginPath(); ctx.ellipse(-44,2,9,15,0,0,7); ctx.ellipse(44,2,9,15,0,0,7); ctx.fill();
+  }
+  // Schweiß
+  if(e.sw > .05){
+    const dy = (time*9 % 16);
+    ctx.fillStyle = `rgba(120,190,240,${e.sw*.9})`;
+    ctx.beginPath(); const sx = 33, sy = -26 + dy; ctx.moveTo(sx, sy-8); ctx.quadraticCurveTo(sx+6, sy+1, sx, sy+4); ctx.quadraticCurveTo(sx-6, sy+1, sx, sy-8); ctx.fill();
+  }
+  // Hände
+  if(e.hn > .1){
+    const hy = 80 - 66*e.hn;
+    ctx.strokeStyle = c.shirt; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(40,110); ctx.lineTo(10,hy+10); ctx.stroke();
+    ctx.fillStyle = c.skin; ctx.beginPath(); ctx.ellipse(2,hy,12,10,-.4,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(90,45,25,.4)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-6,hy-2); ctx.lineTo(8,hy-4); ctx.stroke();
+  }
+  if(e.hf > .1){
+    const hx = 62 + Math.sin(time*16)*12, hy = 30 + (1-e.hf)*60;
+    ctx.strokeStyle = c.shirt; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(66,120); ctx.lineTo(hx,hy+14); ctx.stroke();
+    ctx.fillStyle = c.skin; ctx.beginPath(); ctx.ellipse(hx,hy,10,15,Math.sin(time*16)*.4,0,Math.PI*2); ctx.fill();
+  }
+  // Pfeif-Noten
+  if(e.wh > .6){
+    const ph = (time*1.4) % 1;
+    ctx.fillStyle = `rgba(255,250,230,${1-ph})`; ctx.font = "700 22px 'Bricolage Grotesque', sans-serif"; ctx.textAlign = 'center';
+    ctx.fillText('♪', 26 + Math.sin(time*5)*5, 10 - ph*44);
+  }
+}
+function drawPerson(p, time, sx, sy){
+  ctx.save(); ctx.translate(p.x + sx, p.y + sy); ctx.scale(p.s, p.s);
+  drawBody(p);
+  ctx.rotate(p.e.tilt);
+  hairBack(p.c);
+  drawFace(p, time);
+  ctx.restore();
+}
+function drawCloud(p, time, a){
+  ctx.save(); ctx.globalAlpha = a;
+  for(let i=0;i<9;i++){
+    const ang = i/9*Math.PI*2 + time*.4, r = 70 + Math.sin(time*2+i)*10;
+    const x = p.x + Math.cos(ang)*r*p.s*1.2, y = p.y + 120*p.s + Math.sin(ang)*r*p.s*.6;
+    ctx.fillStyle = 'rgba(150,185,55,.22)'; ctx.beginPath(); ctx.arc(x,y,(34+i%3*8)*p.s,0,Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(170,205,70,.85)'; ctx.lineWidth = 3;
+  for(let j=-1;j<=1;j++){
+    ctx.beginPath(); const x0 = p.x + j*34*p.s;
+    for(let k=0;k<=20;k++){ const yy = p.y - 60*p.s - k*3; const xx = x0 + Math.sin(k*.6 + time*5 + j)*6; k ? ctx.lineTo(xx,yy) : ctx.moveTo(xx,yy); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function drawBubble(p, text){
+  ctx.font = "700 19px 'Bricolage Grotesque', sans-serif";
+  const tw = ctx.measureText(text).width, bw = tw + 26, bh = 38;
+  const x = clamp(p.x - bw/2, 8, W - bw - 8), y = p.y - 60*p.s - bh - 22;
+  ctx.fillStyle = '#fffdf6'; ctx.strokeStyle = '#1b2125'; ctx.lineWidth = 2.5;
+  roundRect(x,y,bw,bh,12); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(p.x-8,y+bh-1); ctx.lineTo(p.x,y+bh+14); ctx.lineTo(p.x+8,y+bh-1); ctx.fill(); ctx.stroke();
+  ctx.fillRect(p.x-9,y+bh-4,18,4);
+  ctx.fillStyle = '#1b2125'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + bw/2, y + bh/2 + 1); ctx.textBaseline = 'alphabetic';
+}
+function drawBrackets(p){
+  const s = p.s, x = p.x, y = p.y, w = 58*s, h = 64*s, l = 16*s;
+  ctx.strokeStyle = '#ffad35'; ctx.lineWidth = 3;
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b]) => { ctx.beginPath(); ctx.moveTo(x+a*w, y+b*h + -b*l); ctx.lineTo(x+a*w, y+b*h); ctx.lineTo(x+a*w + -a*l, y+b*h); ctx.stroke(); });
+  ctx.font = "26px 'VT323', monospace"; ctx.textAlign = 'center';
+  const label = p.c.name.toUpperCase(), tw = ctx.measureText(label).width + 14;
+  ctx.fillStyle = 'rgba(21,14,7,.8)'; ctx.fillRect(x - tw/2, y + h + 4, tw, 24);
+  ctx.fillStyle = '#ffad35'; ctx.fillText(label, x, y + h + 23);
+}
+const off = document.createElement('canvas'); off.width = 192; off.height = 120; const octx = off.getContext('2d'); const oimg = octx.createImageData(192,120);
+function drawStatic(){
+  const d = oimg.data; for(let i=0;i<d.length;i+=4){ const v = Math.random()*255|0; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; }
+  octx.putImageData(oimg,0,0); ctx.imageSmoothingEnabled = false; ctx.drawImage(off,0,0,W,H); ctx.imageSmoothingEnabled = true;
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(340,270,280,60);
+  ctx.fillStyle = '#ffad35'; ctx.font = "40px 'VT323', monospace"; ctx.textAlign = 'center'; ctx.fillText('KAMERA WECHSELT …', 480, 312);
+}
+const clockBase = 8*3600 + 14*60 + Math.floor(Math.random()*40);
+const dateStr = new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+let wall = 0;
+function drawOSD(){
+  ctx.font = "28px 'VT323', monospace"; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,.88)';
+  ctx.fillText('CAM 02 · AUFZUG B', 22, 34);
+  ctx.fillText(dateStr, 22, H-18);
+  const s = clockBase + Math.floor(wall);
+  const hh = String(Math.floor(s/3600)%24).padStart(2,'0'), mm = String(Math.floor(s/60)%60).padStart(2,'0'), ss = String(s%60).padStart(2,'0');
+  ctx.textAlign = 'right'; ctx.fillText(`${hh}:${mm}:${ss}`, W-22, H-18);
+  if(Math.floor(wall*1.5)%2 === 0){ ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(W-92, 25, 8, 0, Math.PI*2); ctx.fill(); }
+  ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fillText('REC', W-22, 34);
+}
+function drawOno(){
+  if(G.onoT < 0) return;
+  const a = G.t - G.onoT; if(a > 1.8) return;
+  const pop = a < .15 ? a/.15*1.15 : 1.15 - Math.min(.15,(a-.15)*.6);
+  ctx.save(); ctx.globalAlpha = a > 1.2 ? 1 - (a-1.2)/.6 : 1;
+  ctx.translate(480, 92); ctx.rotate(-.05); ctx.scale(pop, pop);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  if(G.silent){
+    ctx.font = "italic 600 34px 'Bricolage Grotesque', sans-serif";
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(20,20,20,.7)'; ctx.strokeText(G.onoText,0,0); ctx.fillStyle = '#e8f2c4'; ctx.fillText(G.onoText,0,0);
+  } else {
+    ctx.font = "800 72px 'Bricolage Grotesque', sans-serif";
+    ctx.lineWidth = 10; ctx.strokeStyle = '#1b2125'; ctx.strokeText(G.onoText,0,0); ctx.fillStyle = '#c6dc4a'; ctx.fillText(G.onoText,0,0);
+  }
+  ctx.restore();
+}
+function render(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(G.state === 'static'){ drawStatic(); drawOSD(); return; }
+  const moving = G.state === 'riding' || G.state === 'observe';
+  const sx = 0, sy = moving ? Math.sin(G.t*28)*.8 : 0;
+  ctx.save(); ctx.translate(0, sy*.5);
+  drawCab();
+  ctx.restore();
+  const cu = G.people[G.culprit];
+  const back = G.people.filter(p=>p.row===0), front = G.people.filter(p=>p.row===1);
+  back.forEach(p => drawPerson(p, G.t, sx, sy));
+  if(G.state === 'resolved' && cu && cu.row === 0) drawCloud(cu, G.t, Math.min(1,(G.t-G.revealT)*2));
+  front.forEach(p => drawPerson(p, G.t, sx, sy));
+  if(G.state === 'resolved' && cu && cu.row === 1) drawCloud(cu, G.t, Math.min(1,(G.t-G.revealT)*2));
+  if(G.state === 'observe' && G.hover >= 0) drawBrackets(G.people[G.hover]);
+  if(G.state === 'resolved') G.people.forEach(p => { if(p.bubble) drawBubble(p, p.bubble); });
+  drawOno();
+  const vg = ctx.createRadialGradient(480,300,260,480,300,640); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.5)');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+  drawOSD();
+}
+
+/* ---------- HUD ---------- */
+const hud = {floor:$('floor'),door:$('door'),score:$('score'),streak:$('streak'),clips:$('clips'),arrow:$('arrow')};
+const last = {};
+function setText(k, v){ if(last[k] !== v){ hud[k].textContent = v; last[k] = v; } }
+function updateHUD(){
+  const moving = G.state === 'riding' || G.state === 'observe' || G.state === 'static';
+  setText('floor', G.state === 'demo' ? 'EG' : moving ? floorName(G.level-1) + '→' + floorName(G.level) : floorName(G.level));
+  hud.arrow.classList.toggle('on', moving);
+  let door = '--,-';
+  if(G.state === 'observe') door = Math.max(0, G.tEnd - G.t).toFixed(1).replace('.',',') + ' s';
+  else if(G.state === 'riding' || G.state === 'static') door = 'zu';
+  else if(G.state === 'resolved') door = 'offen';
+  setText('door', door);
+  setText('score', String(G.score).padStart(4,'0'));
+  setText('streak', '×' + G.streak);
+  setText('clips', '■'.repeat(Math.max(0,G.clips)) + '□'.repeat(3-Math.max(0,G.clips)));
+}
+
+/* ---------- Start ---------- */
+makePeople(4);
+G.people.forEach(p => idleSegs(p, 0, 900));
+let prev = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now - prev)/1000); prev = now; wall += dt;
+  update(dt); render(); updateHUD();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
