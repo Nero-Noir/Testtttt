@@ -81,6 +81,9 @@ input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .drop{border:1.5px dashed var(--border);border-radius:10px;padding:16px;text-align:center;color:var(--text-2);cursor:pointer;background:var(--surface-2)}
 .drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 .drop b{color:var(--text)}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none}
+.up{font-size:12px;color:var(--text-2)} .up.bad{color:var(--crit);font-weight:600} .up.ok{color:var(--good)}
+label.btn{display:inline-block}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:4px 4px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 th{font-weight:600;color:var(--text-2);font-size:11px}
@@ -247,29 +250,41 @@ function checkPlace(t,r,x,y,ignoreId){const m={t,r,x,y};const R=mrect(m);
   return {ok:true,msg:'Im Bereich '+ZT[z.t].n};}
 
 /* ---------- Grundriss laden ---------- */
-function setImage(url,cb){const im=new Image();im.onload=()=>{IMG=im;S.img=url;cb&&cb();};im.onerror=()=>toast('Das Bild konnte nicht gelesen werden.');im.src=url;}
+function setImage(url,cb){const im=new Image();im.onload=()=>{IMG=im;S.img=url;cb&&cb();};im.onerror=()=>upStatus('Das Bild konnte nicht angezeigt werden. Bitte ein JPG oder PNG verwenden.',true);im.src=url;}
 function imgH(){return IMG?S.planW*IMG.naturalHeight/IMG.naturalWidth:0;}
 function loadFile(f){
-  if(!f)return;
+  if(!f){upStatus('Keine Datei empfangen. Bitte erneut auswählen.',true);return;}
+  upStatus((f.name||'Datei')+' wird geladen …');
   if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
-    if(!window.pdfjsLib){toast('PDF-Unterstützung konnte nicht geladen werden. Bitte als Bild (PNG/JPG) hochladen.');return;}
+    if(!window.pdfjsLib){upStatus('PDF-Unterstützung konnte nicht geladen werden. Bitte den Plan als Foto oder Screenshot (JPG/PNG) hochladen.',true);return;}
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     f.arrayBuffer().then(buf=>pdfjsLib.getDocument({data:buf}).promise).then(pdf=>pdf.getPage(1)).then(pg=>{
       const vp0=pg.getViewport({scale:1});const sc=Math.min(3,2400/Math.max(vp0.width,vp0.height));const vp=pg.getViewport({scale:sc});
       const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
       return pg.render({canvasContext:x,viewport:vp}).promise.then(()=>c.toDataURL('image/png'));
-    }).then(url=>afterUpload(url)).catch(err=>{console.error(err);toast('Das PDF konnte nicht gelesen werden.');});
-  } else if(f.type.startsWith('image/')){
-    const fr=new FileReader();fr.onload=()=>afterUpload(fr.result);fr.readAsDataURL(f);
-  } else toast('Bitte ein Bild (PNG, JPG) oder ein PDF wählen.');
+    }).then(url=>afterUpload(url)).catch(err=>{console.error(err);upStatus('Das PDF konnte nicht gelesen werden. Bitte als Foto oder Screenshot hochladen.',true);});
+  } else readImage(f);
 }
-function afterUpload(url){S.example=false;S.zones=[];S.machines=[];setImage(url,()=>{detectOutline();S.targets={};fillTargets();changed();fit();renderSide();toast('Grundriss geladen. Hallenkontur erkannt – bitte Maßstab prüfen.');});}
+/* Fotos: Typ wird nicht geprüft (Galerie-Apps liefern oft keinen), großes Bild wird verkleinert */
+function readImage(f){
+  const heic=/hei[cf]/i.test((f.type||'')+(f.name||''));
+  const fail=()=>upStatus(heic?'Dieses Foto ist im HEIC-Format und kann vom Browser nicht gelesen werden. Teile es als JPG (z. B. per Screenshot des Fotos) und lade es erneut hoch.':'Die Datei konnte nicht als Bild gelesen werden ('+(f.type||'unbekannter Typ')+'). Bitte ein JPG oder PNG wählen.',true);
+  const fr=new FileReader();fr.onerror=fail;
+  fr.onload=()=>{const im=new Image();im.onerror=fail;im.onload=()=>{
+    const k=Math.min(1,2400/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*k));c.height=Math.max(1,Math.round(im.naturalHeight*k));
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+    let url;try{url=c.toDataURL('image/jpeg',.85);}catch(e){url=fr.result;}afterUpload(url,f.name);};im.src=fr.result;};
+  fr.readAsDataURL(f);
+}
+let UP=null;function upStatus(msg,bad,ok){UP={msg,bad,ok};const el=$('#upMsg');if(el){el.textContent=msg;el.className='up'+(bad?' bad':ok?' ok':'');el.hidden=false;}if(bad)toast(msg);}
+function afterUpload(url,name){S.example=false;S.zones=[];S.machines=[];setImage(url,()=>{UP={msg:(name||'Plan')+' geladen. Hallenkontur erkannt – bitte Maßstab und Kontur prüfen.',ok:1};detectOutline();S.targets={};fillTargets();changed();fit();renderSide();});}
 /* Kontur erkennen: dunkle Pixel (Wände) zählen und die äußeren Zeilen/Spalten mit viel Wand suchen */
 function detectOutline(){
   if(!IMG)return;const W=Math.min(900,IMG.naturalWidth),H=Math.round(W*IMG.naturalHeight/IMG.naturalWidth);
   const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);x.drawImage(IMG,0,0,W,H);
   const d=x.getImageData(0,0,W,H).data;const rows=new Array(H).fill(0),cols=new Array(W).fill(0);
-  for(let y=0;y<H;y++)for(let i=0;i<W;i++){const k=(y*W+i)*4;const l=.3*d[k]+.59*d[k+1]+.11*d[k+2];if(l<110&&d[k+3]>100){rows[y]++;cols[i]++;}}
+  let sum=0;for(let k=0;k<d.length;k+=4)sum+=.3*d[k]+.59*d[k+1]+.11*d[k+2];const th=Math.min(110,sum/(W*H)*.55);
+  for(let y=0;y<H;y++)for(let i=0;i<W;i++){const k=(y*W+i)*4;const l=.3*d[k]+.59*d[k+1]+.11*d[k+2];if(l<th&&d[k+3]>100){rows[y]++;cols[i]++;}}
   const span=(arr)=>{const mx=Math.max(...arr);if(mx<5)return null;const th=mx*.35;let a=arr.findIndex(v=>v>=th),b=arr.length-1-[...arr].reverse().findIndex(v=>v>=th);return [a,b];};
   const r=span(rows),cc=span(cols);const k=S.planW/W;
   if(!r||!cc||cc[1]-cc[0]<W*.1||r[1]-r[0]<H*.1){const ih=imgH();S.outline=rectPts(S.planW*.05,ih*.05,S.planW*.9,ih*.9);toast('Keine klare Außenwand gefunden – Kontur bitte nachzeichnen.');return;}
@@ -569,8 +584,10 @@ function renderSide(){
 function planHtml(){const h=hall();const A=S.outline.length>=3?polyArea(S.outline):0;
   return `<div class="sec"><h2>Grundriss</h2><p class="lead">Lade einen Hallenplan als Bild oder PDF. Die Außenwände werden erkannt und als Hallenkontur übernommen. Danach legst du in Schritt 2 die Bereiche fest.</p>
   ${S.example?'<p><span class="chip warn">Beispiel</span> <span class="hint">Musterhalle 80 × 48 m – ersetze sie durch deinen eigenen Plan.</span></p>':''}
-  <label class="drop" id="drop" for="fPlan"><b>Bild oder PDF hierher ziehen</b><br><span class="hint">oder klicken zum Auswählen (PNG, JPG, PDF – erste Seite)</span></label>
-  <input type="file" id="fPlan" accept="image/*,application/pdf" hidden>
+  <div class="row"><label class="btn primary" for="fPhoto">Foto aus Galerie</label><label class="btn" for="fPdf">PDF wählen</label></div>
+  <input type="file" id="fPhoto" accept="image/*" class="vh"><input type="file" id="fPdf" accept="application/pdf,.pdf" class="vh"><input type="file" id="fPlan" class="vh">
+  <label class="drop" id="drop" for="fPlan"><b>Datei hierher ziehen</b><br><span class="hint">oder tippen für beliebige Datei (JPG, PNG, PDF – erste Seite)</span></label>
+  <p id="upMsg" class="up${UP?(UP.bad?' bad':UP.ok?' ok':''):''}" ${UP?'':'hidden'} role="status">${UP?UP.msg:''}</p>
   <div class="row"><button class="btn sm" id="bEx" type="button">Beispiel laden</button>${IMG?'<button class="btn sm" id="bNoImg" type="button">Plan ausblenden</button>':''}</div></div>
   <div class="sec"><h3>Maßstab</h3>
   <div class="form"><label for="iPlanW">Planbreite gesamt</label><div class="row"><input type="number" id="iPlanW" min="5" step="1" value="${S.planW}" ${IMG?'':'disabled'}> m</div>
@@ -654,7 +671,7 @@ side.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)retur
   if(b.dataset.go){setTab(b.dataset.go);return;}
   if(b.dataset.mt){ghost=ghost===b.dataset.mt?null:b.dataset.mt;ghostR=0;selM=null;renderSide();return;}
   switch(id){
-    case 'bEx':loadExample();break;
+    case 'bEx':UP=null;loadExample();break;
     case 'bNoImg':IMG=null;S.img=null;changed();renderSide();break;
     case 'bDetect':detectOutline();S.targets={};fillTargets();changed();renderSide();toast('Kontur neu erkannt.');break;
     case 'bTrace':if(tracing)finishTrace();else{tracing={pts:[],cur:null};renderSide();}break;
@@ -678,7 +695,7 @@ side.addEventListener('input',e=>{const t=e.target;
   if(t.dataset.tg){S.targets[t.dataset.tg]=Math.max(0,+t.value||0);save();const A=polyArea(S.outline)||1;const pc=side.querySelector(`[data-pc="${t.dataset.tg}"]`);if(pc)pc.textContent=fmt(S.targets[t.dataset.tg]/A*100)+' %';const sum=ZK.reduce((s,k)=>s+(+S.targets[k]||0),0);$('#sumT').textContent=fmt(sum);$('#sumT').className=sum>A?'over':'';$('#sumP').textContent=fmt(sum/A*100)+' %';}
   if(t.id==='iSpd'&&SIM)SIM.speed=+t.value;});
 side.addEventListener('change',e=>{const t=e.target;
-  if(t.id==='fPlan')loadFile(t.files[0]);
+  if(['fPlan','fPhoto','fPdf'].includes(t.id)){loadFile(t.files&&t.files[0]);t.value='';}
   if(t.id==='iPlanW'&&+t.value>0){rescale(+t.value);changed();fit();renderSide();}
   if(t.id==='iOrtho')orthoTrace=t.checked;
   if(t.id==='iAisle'){S.aisle=Math.max(0,+t.value||0);save();}
