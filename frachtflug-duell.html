@@ -1,0 +1,574 @@
+<title>Frachtflug-Duell</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Flugleitstelle – Einsatzbriefing oben, Teile-Lager links, Hangar rechts, Rennen als Streckenkarte */
+:root{
+  --bg:#e9eef0;          /* Kartenpapier */
+  --panel:#f7f9f9;
+  --ink:#14263b;         /* Navigationstinte */
+  --muted:#5a6b7c;
+  --line:#c7d2d8;
+  --accent:#e0862a;      /* Signal-Amber */
+  --accent-ink:#1b1206;
+  --ok:#2f8a5b; --warn:#c0602a; --bad:#b8323a;
+  --w-klar:#f2f5f4; --w-gegen:#9aa9b9; --w-rueck:#a9d3b5; --w-regen:#9cc0e6;
+  --w-gewitter:#8a79b8; --w-eis:#bfe7ef; --w-nebel:#c9c9c4;
+  --p1:#e0862a; --p2:#2a7fc0; --p3:#3a9a63; --p4:#b8458a;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1a26; --panel:#16232f; --ink:#e3eaf0; --muted:#93a3b2; --line:#2a3a4a;
+  --accent:#f09a42; --accent-ink:#1b1206; --ok:#5cc28c; --warn:#f08a4f; --bad:#f06b72;
+  --w-klar:#1c2a37; --w-gegen:#41536a; --w-rueck:#2f6043; --w-regen:#2c5480;
+  --w-gewitter:#4e3f80; --w-eis:#2c6a76; --w-nebel:#4a4c4f;
+  --p1:#f09a42; --p2:#4fa3e3; --p3:#5cc28c; --p4:#e07ab8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1a26; --panel:#16232f; --ink:#e3eaf0; --muted:#93a3b2; --line:#2a3a4a;
+  --accent:#f09a42; --accent-ink:#1b1206; --ok:#5cc28c; --warn:#f08a4f; --bad:#f06b72;
+  --w-klar:#1c2a37; --w-gegen:#41536a; --w-rueck:#2f6043; --w-regen:#2c5480;
+  --w-gewitter:#4e3f80; --w-eis:#2c6a76; --w-nebel:#4a4c4f;
+  --p1:#f09a42; --p2:#4fa3e3; --p3:#5cc28c; --p4:#e07ab8; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;padding-block:18px 10px;border-bottom:2px solid var(--ink)}
+.brand{font-family:var(--f-display);font-weight:700;font-size:34px;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.brand span{color:var(--accent)}
+.scores{display:flex;flex-wrap:wrap;gap:8px;font-family:var(--f-mono);font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+h2{font-family:var(--f-display);font-weight:600;font-size:22px;letter-spacing:.06em;text-transform:uppercase;margin:0;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;margin:0}
+.label{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+button{font:inherit;cursor:pointer}
+.btn{font-family:var(--f-display);font-weight:600;font-size:18px;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--accent);color:var(--accent-ink);border:0;border-radius:4px;padding:10px 22px}
+.btn:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Briefing */
+.briefing{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:2px solid var(--ink);background:var(--panel)}
+.briefing>div{padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.briefing>div+div{border-left:1px dashed var(--line)}
+.big{font-family:var(--f-display);font-weight:700;font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+.wx{display:flex;flex-wrap:wrap;gap:6px}
+.wxchip{display:inline-flex;gap:6px;align-items:center;padding:4px 8px;border-radius:3px;border:1px solid var(--line);font-size:13px}
+.wxchip code{font-family:var(--f-mono);font-size:12px;font-weight:500}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid currentColor}
+.tag.fragile{color:var(--warn)} .tag.frozen{color:var(--p2)} .tag.heavy{color:var(--muted)}
+
+/* Draft */
+.draft{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px;align-items:start}
+.turn{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;background:var(--ink);color:var(--bg);font-family:var(--f-display);font-size:20px;letter-spacing:.05em;text-transform:uppercase}
+.turn .dot{width:14px;height:14px}
+.pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.part{position:relative;text-align:left;background:var(--panel);color:var(--ink);border:1.5px solid var(--line);border-radius:4px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;min-height:104px;transition:border-color .12s,transform .12s}
+.part:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
+.part:disabled{opacity:.35;cursor:not-allowed}
+.part .name{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:.02em;line-height:1.1}
+.part .desc{font-size:13px;color:var(--muted)}
+.part .cnt{position:absolute;top:8px;right:10px;font-family:var(--f-mono);font-size:13px;font-weight:500}
+.part .cnt.zero{color:var(--bad)}
+.part .cat{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.hangar{display:flex;flex-direction:column;gap:10px}
+.plane{border:1.5px solid var(--line);background:var(--panel);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.plane.active{border-color:var(--ink);box-shadow:0 0 0 2px var(--accent)}
+.plane .hd{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.plane .who{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:20px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column}
+.stat b{font-family:var(--f-mono);font-weight:500;font-size:15px}
+.slots{display:flex;flex-wrap:wrap;gap:5px}
+.slot{font-size:12px;padding:2px 7px;border-radius:3px;background:var(--bg);border:1px solid var(--line)}
+.slot.empty{border-style:dashed;color:var(--muted)}
+.warns{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.warns .w{color:var(--warn)} .warns .g{color:var(--ok)}
+
+/* Race */
+.racebox{border:2px solid var(--ink);background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:10px}
+.racebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.clock{font-family:var(--f-mono);font-size:22px;font-variant-numeric:tabular-nums}
+.speeds{display:flex;gap:4px}
+.speeds button{font-family:var(--f-mono);font-size:13px;padding:5px 10px;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:3px}
+.speeds button.on{background:var(--ink);color:var(--bg)}
+canvas{display:block;width:100%;max-width:100%}
+.log{font-family:var(--f-mono);font-size:12.5px;max-height:190px;overflow:auto;border-top:1px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:2px}
+.log .t{color:var(--muted)}
+.results table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.results td,.results th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.results th{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.tablewrap{overflow-x:auto}
+.place{font-family:var(--f-display);font-size:26px;font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* Setup */
+.setup{max-width:620px;display:flex;flex-direction:column;gap:14px}
+.prow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prow input{font:inherit;padding:8px 10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;flex:1;min-width:140px}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);padding:7px 12px;font-family:var(--f-mono);font-size:13px}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.rules{font-size:14px;color:var(--muted);max-width:65ch}
+.rules li{margin-block:3px}
+.x{border:0;background:transparent;color:var(--muted);font-size:20px;padding:4px 8px}
+
+@media (max-width:860px){
+  .draft{grid-template-columns:minmax(0,1fr)}
+  .briefing{grid-template-columns:minmax(0,1fr)}
+  .briefing>div+div{border-left:0;border-top:1px dashed var(--line)}
+  .brand{font-size:28px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Frachtflug<span>-</span>Duell</div>
+    <div class="scores" id="scores"></div>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+"use strict";
+/* ---------- Daten ---------- */
+const PARTS = [
+  {id:'prop',  name:'Propellermotor',     n:2, cat:'Antrieb',    desc:'+70 km/h Reisegeschwindigkeit',            apply:s=>{s.speed+=70}},
+  {id:'jet',   name:'Turbo-Jet',          n:1, cat:'Antrieb',    desc:'+170 km/h, aber −150 km Reichweite',      apply:s=>{s.speed+=170;s.range-=150}},
+  {id:'boost', name:'Nachbrenner',        n:1, cat:'Antrieb',    desc:'Letzte 25 % der Strecke: +40 % Tempo, fast doppelter Verbrauch', apply:s=>{s.boost=true}},
+  {id:'tank',  name:'Zusatztank',         n:2, cat:'Treibstoff', desc:'+400 km Reichweite',                       apply:s=>{s.range+=400}},
+  {id:'wing',  name:'Segelflügel',        n:1, cat:'Flügel',     desc:'+250 km Reichweite, +1 Stabilität, −20 km/h', apply:s=>{s.range+=250;s.stab+=1;s.speed-=20}},
+  {id:'hold',  name:'Frachtraum XL',      n:2, cat:'Rumpf',      desc:'+1,5 t Zuladung',                          apply:s=>{s.cap+=1.5}},
+  {id:'hull',  name:'Verstärkter Rumpf',  n:2, cat:'Rumpf',      desc:'+2 Stabilität – Gewitter bremsen weniger', apply:s=>{s.stab+=2}},
+  {id:'light', name:'Leichtbau-Kit',      n:1, cat:'Rumpf',      desc:'+40 km/h und +0,5 t Zuladung',             apply:s=>{s.speed+=40;s.cap+=0.5}},
+  {id:'deice', name:'Enteisungsanlage',   n:1, cat:'System',     desc:'Vereisung bremst kaum noch',               apply:s=>{s.deice=true}},
+  {id:'radar', name:'Wetterradar',        n:1, cat:'System',     desc:'Kein Umweg im Nebel, +1 Stabilität',       apply:s=>{s.radar=true;s.stab+=1}},
+  {id:'cool',  name:'Kühlbox',            n:1, cat:'Fracht',     desc:'Tiefkühlware hält unbegrenzt',             apply:s=>{s.cool=true}},
+  {id:'damp',  name:'Stoßdämpfer-Palette',n:1, cat:'Fracht',     desc:'Zerbrechliches übersteht Gewitter ohne Drosseln', apply:s=>{s.damp=true}},
+];
+const PART = Object.fromEntries(PARTS.map(p=>[p.id,p]));
+
+const WX = {
+  klar:     {name:'Klar',       code:'CAVOK',   css:'--w-klar'},
+  gegen:    {name:'Gegenwind',  code:'27040KT', css:'--w-gegen',    hint:'−28 % Tempo, +15 % Verbrauch'},
+  rueck:    {name:'Rückenwind', code:'09035KT', css:'--w-rueck',    hint:'+25 % Tempo'},
+  regen:    {name:'Regen',      code:'+RA',     css:'--w-regen',    hint:'−12 % Tempo'},
+  gewitter: {name:'Gewitter',   code:'TSRA',    css:'--w-gewitter', hint:'bremst je nach Stabilität stark'},
+  eis:      {name:'Vereisung',  code:'FZRA',    css:'--w-eis',      hint:'ohne Enteisung −50 % Tempo'},
+  nebel:    {name:'Nebel',      code:'FG',      css:'--w-nebel',    hint:'ohne Radar Umwege, −40 % Tempo'},
+};
+const CARGO = [
+  {name:'Luftpost',        w:0.6, tags:[]},
+  {name:'Maschinenteile',  w:2.4, tags:['heavy']},
+  {name:'Porzellan',       w:1.0, tags:['fragile']},
+  {name:'Konzertflügel',   w:1.8, tags:['fragile','heavy']},
+  {name:'Speiseeis',       w:1.2, tags:['frozen'], limit:3.5},
+  {name:'Impfstoff',       w:0.5, tags:['frozen','fragile'], limit:3},
+  {name:'Turbinenschaufeln',w:2.0,tags:['heavy','fragile']},
+];
+const ROUTES = [['Hamburg','Lissabon'],['München','Oslo'],['Köln','Athen'],['Berlin','Madrid'],['Wien','Reykjavík'],['Frankfurt','Istanbul'],['Zürich','Helsinki'],['Leipzig','Dublin']];
+const AI_NAMES = ['KI Kranich','KI Albatros','KI Möwe'];
+const REFUEL_H = 1.2;
+const BASE = {speed:250, range:500, cap:1.0, stab:1};
+
+/* ---------- Zustand ---------- */
+let G = {
+  players:[{name:'Spieler 1',ai:false},{name:'KI Kranich',ai:true}],
+  round:0, phase:'setup', mission:null, pool:{}, order:[], pick:0, picksEach:4,
+};
+const colorVar = i => `--p${i+1}`;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const rnd = (a,b)=>a+Math.random()*(b-a);
+const pickOne = a => a[Math.floor(Math.random()*a.length)];
+const fmtKm = n => Math.round(n).toLocaleString('de-DE')+' km';
+const fmtT = h => { const m=Math.round(h*60); return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')+' h'; };
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function stats(parts){
+  const s={...BASE,boost:false,deice:false,radar:false,cool:false,damp:false};
+  parts.forEach(id=>PART[id].apply(s));
+  return s;
+}
+
+/* ---------- Mission ---------- */
+function makeMission(){
+  const D = Math.round(rnd(700,2000)/10)*10;
+  const approx = Math.round(D*rnd(0.85,1.15)/50)*50;
+  const pool = ['regen','gewitter','eis','nebel'];
+  const n = Math.random()<0.5?2:3;
+  let conds = [];
+  const wind = Math.random(); if(wind<0.4) conds.push('gegen'); else if(wind<0.7) conds.push('rueck');
+  while(conds.length<n){ const c=pickOne(pool); if(!conds.includes(c)) conds.push(c); }
+  // Strecke in Abschnitte teilen; jede Bedingung kommt mindestens einmal vor
+  const k = 8, types = [...conds];
+  while(types.length<k) types.push(Math.random()<0.45?'klar':pickOne(conds));
+  types.sort(()=>Math.random()-.5);
+  const lens = types.map(()=>rnd(0.6,1.4)); const sum=lens.reduce((a,b)=>a+b,0);
+  let acc=0; const segs = types.map((t,i)=>{const a=acc; acc+=lens[i]/sum; return {type:t,a,b:acc};});
+  segs[segs.length-1].b=1;
+  const c = pickOne(CARGO);
+  const cargo = {...c, w: Math.round(c.w*rnd(0.9,1.15)*10)/10};
+  return {D, approx, conds, segs, cargo, route:pickOne(ROUTES)};
+}
+
+/* ---------- Flugphysik (geteilt von Rennen und KI) ---------- */
+class Flight{
+  constructor(st, mission, D, segs, emit){
+    Object.assign(this,{st,m:mission,D,segs,emit:emit||(()=>{})});
+    this.pos=0; this.fuel=st.range; this.t=0; this.hold=0; this.done=false; this.spoiled=false;
+    this.landings=0; this.lastSeg=-1; this.boostOn=false; this.v=0; this.status='Rollt zur Startbahn';    this.started=false;
+  }
+  intro(){
+    this.started=true;
+    if(this.m.cargo.w>this.st.cap) this.emit(`überladen (${this.m.cargo.w.toLocaleString('de-DE')} t auf ${this.st.cap.toLocaleString('de-DE')} t) – fliegt schwerfällig`,'w');
+  }
+  segAt(p){ const f=p/this.D; for(let i=0;i<this.segs.length;i++) if(f<this.segs[i].b) return i; return this.segs.length-1; }
+  factors(type){
+    const s=this.st, c=this.m.cargo; let v=s.speed, burn=1, note='';
+    if(c.w>s.cap) v*=Math.max(0.35,1-0.35*(c.w-s.cap));
+    switch(type){
+      case 'gegen': v*=0.72; burn*=1.15; note='Gegenwind'; break;
+      case 'rueck': v*=1.25; note='Rückenwind schiebt an'; break;
+      case 'regen': v*=0.88; note='Regen'; break;
+      case 'gewitter': {
+        const f = s.stab>=4?0.92: s.stab>=2?0.72:0.5; v*=f;
+        note = `Gewitter – Stabilität ${s.stab}, ${Math.round(f*100)} % Tempo`;
+        if(c.tags.includes('fragile') && !s.damp){ v*=0.6; note+=', drosselt wegen zerbrechlicher Fracht'; }
+        break; }
+      case 'eis': if(s.deice){v*=0.95; note='Vereisung – Enteisung läuft';} else {v*=0.5; burn*=1.2; note='Vereisung! Ohne Enteisung nur halbes Tempo';} break;
+      case 'nebel': if(s.radar){v*=0.95; note='Nebel – Radar führt sicher';} else {v*=0.6; burn*=1.3; note='Nebel! Ohne Radar Umwege';} break;
+    }
+    if(s.boost && this.pos>=0.75*this.D){ v*=1.4; burn*=1.8; }
+    return {v,burn,note};
+  }
+  step(dt){
+    if(this.done) return;
+    if(!this.started) this.intro();
+    this.t+=dt;
+    const c=this.m.cargo;
+    if(c.limit && !this.st.cool && !this.spoiled && this.t>c.limit){ this.spoiled=true; this.emit(`Kühlkette gerissen – ${c.name} ist verdorben`,'b'); }
+    if(this.hold>0){
+      this.hold-=dt; this.v=0; this.status='Notlandung · tankt';
+      if(this.hold<=0){ this.fuel=this.st.range; this.emit('vollgetankt, wieder in der Luft'); }
+      return;
+    }
+    const i=this.segAt(this.pos);
+    if(i!==this.lastSeg){ this.lastSeg=i; const f=this.factors(this.segs[i].type); if(this.segs[i].type!=='klar') this.emit(f.note, this.segs[i].type==='rueck'?'g':''); }
+    if(this.st.boost && !this.boostOn && this.pos>=0.75*this.D){ this.boostOn=true; this.emit('zündet den Nachbrenner','g'); }
+    const f=this.factors(this.segs[i].type);
+    this.v=f.v; this.status=Math.round(f.v)+' km/h';
+    const move=f.v*dt, need=move*f.burn;
+    if(need>=this.fuel){
+      this.pos+=move*(this.fuel/need); this.fuel=0;
+      if(this.pos>=this.D){ this.finish(0); return; }
+      this.hold=REFUEL_H; this.landings++;
+      this.emit(`Tank leer nach ${fmtKm(this.pos)} – Notlandung, ${fmtT(REFUEL_H)} Tankstopp`,'w');
+    } else { this.pos+=move; this.fuel-=need; }
+    if(this.pos>=this.D) this.finish((this.pos-this.D)/f.v);
+  }
+  finish(over){ this.pos=this.D; this.done=true; this.time=this.t-over; this.status='gelandet'; this.emit(`landet am Ziel nach ${fmtT(this.time)}`,'g'); }
+}
+
+/* KI: schätzt Flugzeit anhand des Briefings (kennt nur ungefähre Strecke) */
+function estimate(parts, m){
+  const st=stats(parts);
+  const types=['klar',...m.conds];
+  const segs=types.map((t,i)=>({type:t,a:i/types.length,b:(i+1)/types.length}));
+  const f=new Flight(st,m,m.approx*1.1,segs);
+  while(!f.done && f.t<60) f.step(0.02);
+  let t=f.done?f.time:99;
+  if(f.spoiled) t+=40;
+  return t;
+}
+function aiPick(pi){
+  const mine=G.players[pi].parts;
+  let best=null, bestT=Infinity;
+  for(const p of PARTS){
+    if(!G.pool[p.id]) continue;
+    const t=estimate([...mine,p.id],G.mission)+Math.random()*0.05;
+    if(t<bestT){bestT=t;best=p.id;}
+  }
+  return best;
+}
+
+/* ---------- Ablauf ---------- */
+function startRound(){
+  G.round++;
+  G.mission=makeMission();
+  G.pool=Object.fromEntries(PARTS.map(p=>[p.id,p.n]));
+  G.players.forEach(p=>p.parts=[]);
+  const n=G.players.length;
+  G.picksEach = n>=4?3:4;
+  const first=(G.round-1)%n, base=[...Array(n)].map((_,i)=>(first+i)%n);
+  G.order=[]; for(let r=0;r<G.picksEach;r++) G.order.push(...(r%2?[...base].reverse():base));
+  G.pick=0; G.phase='draft';
+  render(); maybeAI();
+}
+function choose(id){
+  if(G.phase!=='draft'||!G.pool[id]) return;
+  const pi=G.order[G.pick];
+  G.players[pi].parts.push(id); G.pool[id]--; G.pick++;
+  render(); maybeAI();
+}
+let aiTimer=null;
+function maybeAI(){
+  clearTimeout(aiTimer);
+  if(G.phase!=='draft'||G.pick>=G.order.length) return;
+  const pi=G.order[G.pick];
+  if(G.players[pi].ai) aiTimer=setTimeout(()=>choose(aiPick(pi)),650);
+}
+
+/* ---------- Render ---------- */
+const app=document.getElementById('app');
+function renderScores(){
+  document.getElementById('scores').innerHTML = G.phase==='setup'?'' :
+    `<span class="chip">Runde ${G.round}</span>`+G.players.map((p,i)=>`<span class="chip"><span class="dot" style="background:var(${colorVar(i)})"></span>${esc(p.name)} <b>${p.score||0}</b></span>`).join('');
+}
+function render(){
+  renderScores();
+  if(G.phase==='setup') return renderSetup();
+  if(G.phase==='draft') return renderDraft();
+}
+
+function renderSetup(){
+  app.innerHTML=`<section class="setup">
+    <h2>Crew zusammenstellen</h2>
+    <ul class="rules">
+      <li>Vor jeder Runde siehst du nur das Briefing: <b>ungefähre Strecke</b>, <b>Wetterlage</b> und <b>Fracht</b>.</li>
+      <li>Danach wählt ihr reihum Bauteile aus einem gemeinsamen Lager. Manche gibt es zweimal, viele nur einmal – wer zuerst greift, hat sie.</li>
+      <li>Jedes Flugzeug hat ${'4'} Bauplätze (bei 4 Piloten nur 3). Wer zuerst landet, gewinnt die Runde.</li>
+      <li>Leerer Tank heißt Notlandung mit Tankstopp. Tiefkühlware ohne Kühlbox verdirbt, wenn der Flug zu lange dauert.</li>
+    </ul>
+    <div id="plist" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="row">
+      <button class="btn ghost" id="add">+ Pilot</button>
+      <button class="btn" id="go">Briefing öffnen</button>
+    </div></section>`;
+  const pl=document.getElementById('plist');
+  pl.innerHTML=G.players.map((p,i)=>`<div class="prow">
+    <span class="dot" style="background:var(${colorVar(i)});width:14px;height:14px"></span>
+    <input id="pname${i}" value="${esc(p.name)}" maxlength="18" aria-label="Name Pilot ${i+1}">
+    <span class="seg"><button data-i="${i}" data-ai="0" class="${p.ai?'':'on'}">Mensch</button><button data-i="${i}" data-ai="1" class="${p.ai?'on':''}">KI</button></span>
+    ${G.players.length>2?`<button class="x" data-del="${i}" aria-label="Entfernen">×</button>`:''}
+  </div>`).join('');
+  pl.querySelectorAll('input').forEach((el,i)=>el.oninput=()=>G.players[i].name=el.value||('Pilot '+(i+1)));
+  pl.querySelectorAll('[data-ai]').forEach(b=>b.onclick=()=>{G.players[+b.dataset.i].ai=b.dataset.ai==='1';renderSetup();});
+  pl.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{G.players.splice(+b.dataset.del,1);renderSetup();});
+  const add=document.getElementById('add'); add.disabled=G.players.length>=4;
+  add.onclick=()=>{G.players.push({name:AI_NAMES.find(n=>!G.players.some(p=>p.name===n))||'Pilot '+(G.players.length+1),ai:true});renderSetup();};
+  document.getElementById('go').onclick=()=>{G.players.forEach(p=>p.score=0);G.round=0;startRound();};
+}
+
+function briefingHTML(m, reveal){
+  const c=m.cargo;
+  const t=c.tags.map(x=>`<span class="tag ${x}">${{fragile:'zerbrechlich',frozen:'tiefgekühlt',heavy:'schwer'}[x]}</span>`).join('');
+  return `<section class="briefing" aria-label="Einsatzbriefing">
+    <div><span class="label">Strecke · ${esc(m.route[0])} → ${esc(m.route[1])}</span>
+      <span class="big">${reveal?fmtKm(m.D):'ca. '+fmtKm(m.approx)}</span>
+      <span class="muted" style="font-size:13px">${reveal?`Prognose war ca. ${fmtKm(m.approx)}`:'Genaue Distanz zeigt sich erst im Flug (±15 %)'}</span></div>
+    <div><span class="label">Wetter auf der Route</span>
+      <div class="wx">${m.conds.map(k=>`<span class="wxchip" style="background:var(${WX[k].css})" title="${WX[k].hint}"><code>${WX[k].code}</code>${WX[k].name}</span>`).join('')}</div>
+      <span class="muted" style="font-size:13px">${m.conds.map(k=>WX[k].name+': '+WX[k].hint).join(' · ')}</span></div>
+    <div><span class="label">Fracht</span>
+      <span class="big">${esc(c.name)}</span>
+      <div class="tags"><span class="tag heavy" style="color:var(--ink)">${c.w.toLocaleString('de-DE')} t</span>${t}</div>
+      ${c.limit?`<span class="muted" style="font-size:13px">Ohne Kühlbox max. ${String(c.limit).replace('.',',')} h Flugzeit</span>`:''}</div>
+  </section>`;
+}
+
+function warnings(st, m){
+  const w=[]; const c=m.cargo;
+  if(st.range<m.approx) w.push(['w',`Reichweite ${fmtKm(st.range)} < Strecke – mind. ein Tankstopp (${fmtT(REFUEL_H)})`]);
+  else if(st.range<m.approx*1.2) w.push(['w','Reichweite knapp – Gegenwind oder Umwege könnten nicht reichen']);
+  else w.push(['g','Reichweite reicht voraussichtlich']);
+  if(c.w>st.cap) w.push(['w',`Überladen: ${c.w.toLocaleString('de-DE')} t bei ${st.cap.toLocaleString('de-DE')} t Zuladung`]);
+  if(m.conds.includes('eis')&&!st.deice) w.push(['w','Vereisung ohne Enteisungsanlage']);
+  if(m.conds.includes('nebel')&&!st.radar) w.push(['w','Nebel ohne Wetterradar']);
+  if(m.conds.includes('gewitter')&&st.stab<2) w.push(['w','Gewitter bei Stabilität 1']);
+  if(m.conds.includes('gewitter')&&c.tags.includes('fragile')&&!st.damp) w.push(['w','Zerbrechliche Fracht im Gewitter ohne Stoßdämpfer']);
+  if(c.limit&&!st.cool) w.push(['w',`Kühlkette: Flug muss unter ${String(c.limit).replace('.',',')} h bleiben`]);
+  return w;
+}
+
+function planeCard(p,i,active,m){
+  const st=stats(p.parts);
+  const slots=[...p.parts.map(id=>`<span class="slot">${PART[id].name}</span>`),
+    ...Array(Math.max(0,G.picksEach-p.parts.length)).fill('<span class="slot empty">frei</span>')].join('');
+  return `<div class="plane ${active?'active':''}">
+    <div class="hd"><span class="who"><span class="dot" style="background:var(${colorVar(i)});width:14px;height:14px"></span>${esc(p.name)}</span><span class="label">${p.ai?'KI':'Mensch'}</span></div>
+    <div class="stats">
+      <div class="stat"><span class="label">Tempo</span><b>${st.speed} km/h</b></div>
+      <div class="stat"><span class="label">Reichw.</span><b>${st.range} km</b></div>
+      <div class="stat"><span class="label">Zuladung</span><b>${st.cap.toLocaleString('de-DE')} t</b></div>
+      <div class="stat"><span class="label">Stabil.</span><b>${st.stab}</b></div>
+    </div>
+    <div class="slots">${slots}</div>
+    <div class="warns">${warnings(st,m).map(([k,t])=>`<span class="${k}">${k==='w'?'▲':'✓'} ${t}</span>`).join('')}</div>
+  </div>`;
+}
+
+function renderDraft(){
+  const m=G.mission, done=G.pick>=G.order.length;
+  const pi=done?-1:G.order[G.pick], cur=G.players[pi];
+  const human = cur && !cur.ai;
+  app.innerHTML=`${briefingHTML(m,false)}
+  <div class="turn" style="margin-top:18px">${done?'Alle Flugzeuge sind fertig gebaut':`<span class="dot" style="background:var(${colorVar(pi)})"></span>${esc(cur.name)} wählt · Bauteil ${Math.floor(G.pick/G.players.length)+1} von ${G.picksEach}${cur.ai?' <span style="opacity:.7">… überlegt</span>':''}`}</div>
+  <div class="draft" style="margin-top:14px">
+    <section style="display:flex;flex-direction:column;gap:10px"><h3>Teilelager</h3>
+      <div class="pool">${PARTS.map(p=>`<button class="part" data-id="${p.id}" ${(!human||!G.pool[p.id])?'disabled':''}>
+        <span class="cat">${p.cat}</span><span class="name">${p.name}</span><span class="desc">${p.desc}</span>
+        <span class="cnt ${G.pool[p.id]?'':'zero'}">${G.pool[p.id]}/${p.n}×</span></button>`).join('')}</div>
+    </section>
+    <section class="hangar"><h3>Hangar</h3>
+      ${G.players.map((p,i)=>planeCard(p,i,i===pi,m)).join('')}
+      ${done?'<button class="btn" id="takeoff">Abflug!</button>':''}
+    </section>
+  </div>`;
+  app.querySelectorAll('.part').forEach(b=>b.onclick=()=>choose(b.dataset.id));
+  if(done) document.getElementById('takeoff').onclick=startRace;
+}
+
+/* ---------- Rennen ---------- */
+let R=null;
+function startRace(){
+  G.phase='race';
+  const m=G.mission;
+  const log=[];
+  const flights=G.players.map(p=>new Flight(stats(p.parts),m,m.D,m.segs));
+  flights.forEach((f,i)=>{ f.emit=(msg,k)=>log.push({t:f.t,who:i,msg,k}); });
+  R={flights,log,speed:1,last:null,raf:0,shown:0,ended:false};
+  renderScores();
+  app.innerHTML=`${briefingHTML(m,true)}
+  <section class="racebox" style="margin-top:18px">
+    <div class="racebar"><span class="clock" id="clock">0:00 h</span>
+      <div class="speeds" id="speeds">${[1,3,10].map(s=>`<button data-s="${s}" class="${s===1?'on':''}">${s}×</button>`).join('')}<button data-s="0">⏭ Ende</button></div></div>
+    <canvas id="cv" aria-label="Rennverlauf"></canvas>
+    <div class="log" id="log" aria-live="polite"></div>
+  </section>
+  <section id="results" style="margin-top:18px"></section>`;
+  document.querySelectorAll('#speeds button').forEach(b=>b.onclick=()=>{
+    const s=+b.dataset.s;
+    if(s===0){ while(!allDone()) stepAll(0.01); }
+    else { R.speed=s; document.querySelectorAll('#speeds button').forEach(x=>x.classList.toggle('on',x===b)); }
+  });
+  R.raf=requestAnimationFrame(loop);
+}
+const allDone=()=>R.flights.every(f=>f.done||f.t>80);
+function stepAll(dt){ R.flights.forEach(f=>{ if(!f.done&&f.t<=80) f.step(dt); }); }
+function loop(ts){
+  if(!R||G.phase!=='race') return;
+  if(R.last==null) R.last=ts;
+  const real=Math.min(0.1,(ts-R.last)/1000); R.last=ts;
+  let hours=real*0.45*R.speed;
+  while(hours>0 && !allDone()){ const d=Math.min(0.01,hours); stepAll(d); hours-=d; }
+  draw(); updateLog();
+  if(allDone() && !R.ended){ R.ended=true; setTimeout(showResults,600); }
+  R.raf=requestAnimationFrame(loop);
+}
+function updateLog(){
+  const el=document.getElementById('log'); if(!el) return;
+  const clock=Math.max(...R.flights.map(f=>f.done?f.time:f.t));
+  document.getElementById('clock').textContent=fmtT(clock);
+  if(R.shown===R.log.length) return;
+  for(;R.shown<R.log.length;R.shown++){
+    const e=R.log[R.shown], d=document.createElement('div');
+    const col=e.k==='w'?'var(--warn)':e.k==='b'?'var(--bad)':e.k==='g'?'var(--ok)':'var(--ink)';
+    d.innerHTML=`<span class="t">${fmtT(e.t).replace(' h','')}</span> <span style="color:var(${colorVar(e.who)})">■</span> <b>${esc(G.players[e.who].name)}</b> <span style="color:${col}">${esc(e.msg)}</span>`;
+    el.prepend(d);
+  }
+}
+function draw(){
+  const cv=document.getElementById('cv'); if(!cv) return;
+  const W=cv.clientWidth, lanes=R.flights.length, laneH=58, top=54, H=top+lanes*laneH+16;
+  const dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+'px'; }
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const L=14, Rr=W-34, span=Rr-L, m=G.mission, ink=css('--ink'), muted=css('--muted'), line=css('--line');
+  // Wetterband
+  m.segs.forEach(s=>{
+    const x0=L+s.a*span, x1=L+s.b*span;
+    g.fillStyle=css(WX[s.type].css); g.fillRect(x0,6,x1-x0,26);
+    g.globalAlpha=.25; g.fillRect(x0,top-4,x1-x0,lanes*laneH+4); g.globalAlpha=1;
+    if(x1-x0>46){ g.fillStyle=ink; g.font='500 10px "IBM Plex Mono",monospace'; g.textAlign='center'; g.fillText(WX[s.type].code,(x0+x1)/2,23); }
+  });
+  g.strokeStyle=ink; g.lineWidth=1; g.strokeRect(L,6,span,26);
+  // km-Skala
+  g.fillStyle=muted; g.font='10px "IBM Plex Mono",monospace';
+  const stepKm = m.D>1400?400:200;
+  for(let k=0;k<=m.D;k+=stepKm){ const x=L+k/m.D*span; g.textAlign=k===0?'left':'center'; g.fillText(k,x,45); g.fillRect(x,32,1,4); }
+  // Ziel
+  g.fillStyle=ink; g.fillRect(Rr,top-6,2,lanes*laneH+8);
+  for(let y=0;y<4;y++)for(let x=0;x<2;x++){ g.fillStyle=(x+y)%2?css('--panel'):ink; g.fillRect(Rr+3+x*7,top-6+y*7,7,7); }
+  R.flights.forEach((f,i)=>{
+    const y=top+i*laneH+laneH/2, col=css(colorVar(i));
+    g.strokeStyle=line; g.setLineDash([4,5]); g.beginPath(); g.moveTo(L,y); g.lineTo(Rr,y); g.stroke(); g.setLineDash([]);
+    // Flugspur
+    const x=L+f.pos/f.D*span;
+    g.strokeStyle=col; g.lineWidth=3; g.beginPath(); g.moveTo(L,y); g.lineTo(x,y); g.stroke(); g.lineWidth=1;
+    const grounded=f.hold>0;
+    drawPlane(g,x,grounded?y+8:y,col,f.boostOn&&!f.done&&!grounded,grounded);
+    // Beschriftung
+    g.fillStyle=ink; g.font='600 13px "Barlow Condensed",sans-serif'; g.textAlign=x>W*0.6?'right':'left';
+    const tx=x>W*0.6?x-22:x+22;
+    g.fillText(G.players[i].name+(f.spoiled?' · Fracht verdorben':''),tx,y-11);
+    g.fillStyle=muted; g.font='10px "IBM Plex Mono",monospace';
+    g.fillText(f.done?('Ziel · '+fmtT(f.time)):f.status,tx,y+18);
+    // Tankanzeige
+    const fw=40, fr=Math.max(0,f.fuel/f.st.range);
+    const fx=x>W*0.6?tx-fw:tx;
+    g.fillStyle=line; g.fillRect(fx,y-6,fw,4);
+    g.fillStyle=fr<0.2?css('--bad'):col; g.fillRect(fx,y-6,fw*fr,4);
+  });
+}
+function drawPlane(g,x,y,col,flame,grounded){
+  g.save(); g.translate(x,y);
+  if(flame){ g.fillStyle=css('--accent'); g.beginPath(); g.moveTo(-14,-3); g.lineTo(-26-Math.random()*6,0); g.lineTo(-14,3); g.fill(); }
+  g.fillStyle=grounded?css('--muted'):col; g.strokeStyle=css('--ink'); g.lineWidth=1;
+  g.beginPath(); // Rumpf
+  g.moveTo(16,0); g.quadraticCurveTo(12,-4,0,-3.5); g.lineTo(-13,-2.5); g.lineTo(-15,0); g.lineTo(-13,2.5); g.lineTo(0,3.5); g.quadraticCurveTo(12,4,16,0); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(4,-3); g.lineTo(-4,-14); g.lineTo(-8,-14); g.lineTo(-4,-3); g.closePath(); g.fill(); g.stroke(); // Flügel
+  g.beginPath(); g.moveTo(4,3); g.lineTo(-4,14); g.lineTo(-8,14); g.lineTo(-4,3); g.closePath(); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(-10,-2); g.lineTo(-14,-7); g.lineTo(-16,-7); g.lineTo(-14,-1); g.closePath(); g.fill(); g.stroke(); // Leitwerk
+  g.beginPath(); g.moveTo(-10,2); g.lineTo(-14,7); g.lineTo(-16,7); g.lineTo(-14,1); g.closePath(); g.fill(); g.stroke();
+  g.restore();
+}
+function showResults(){
+  const res=R.flights.map((f,i)=>({i,f,t:f.done?f.time:Infinity,bad:f.spoiled||!f.done}));
+  res.sort((a,b)=>(a.bad-b.bad)||(a.t-b.t));
+  const pts=[3,2,1,0];
+  let place=0;
+  res.forEach(r=>{ r.pts=r.bad?0:pts[place++]||0; G.players[r.i].score=(G.players[r.i].score||0)+r.pts; });
+  renderScores();
+  const win=res[0];
+  const el=document.getElementById('results');
+  el.className='results';
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">
+    <h2>${win.bad?'Niemand hat sauber geliefert':esc(G.players[win.i].name)+' liefert zuerst'}</h2>
+    <div class="tablewrap"><table><thead><tr><th>Platz</th><th>Pilot</th><th>Flugzeit</th><th>Bauteile</th><th>Vorfälle</th><th>Punkte</th></tr></thead><tbody>
+    ${res.map((r,k)=>`<tr><td class="place">${r.bad?'–':k+1}</td>
+      <td><span class="dot" style="display:inline-block;background:var(${colorVar(r.i)})"></span> ${esc(G.players[r.i].name)}</td>
+      <td style="font-family:var(--f-mono)">${r.f.done?fmtT(r.t):'—'}</td>
+      <td style="font-size:13px">${G.players[r.i].parts.map(id=>PART[id].name).join(', ')}</td>
+      <td style="font-size:13px">${[r.f.landings?r.f.landings+'× Tankstopp':'',r.f.spoiled?'Fracht verdorben – disqualifiziert':''].filter(Boolean).join(', ')||'keine'}</td>
+      <td style="font-family:var(--f-mono)">+${r.pts}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="row"><button class="btn" id="next">Nächste Runde</button><button class="btn ghost" id="restart">Neues Spiel</button></div>
+  </div>`;
+  document.getElementById('next').onclick=()=>{ cancelAnimationFrame(R.raf); R=null; startRound(); window.scrollTo({top:0}); };
+  document.getElementById('restart').onclick=()=>{ cancelAnimationFrame(R.raf); R=null; G.phase='setup'; render(); window.scrollTo({top:0}); };
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+render();
+</script>
