@@ -214,6 +214,44 @@ td.bad{color:var(--crit);font-weight:600} td.ok{color:var(--good)}
 .fade{animation:fade .35s ease}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
+/* ---------- Werk live ---------- */
+.site-card{padding:0;overflow:hidden}
+.site-stage{position:relative;height:min(68vh,640px);min-height:380px;background:#2a3326;overflow:hidden;touch-action:none}
+.site-stage canvas{display:block;cursor:grab}
+.site-stage canvas:active{cursor:grabbing}
+.site-hud{position:absolute;z-index:2;border-radius:16px;padding:12px 16px;color:#fff;background:rgba(28,28,30,.55);
+  -webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);border:1px solid rgba(255,255,255,.12);pointer-events:none}
+.site-hud.tl{left:16px;top:16px;min-width:220px}
+.site-hud.tr{right:16px;top:16px;display:grid;grid-template-columns:auto auto;gap:6px 14px;font-size:12px}
+.hud-k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7cc0ff}
+.hud-m{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:2px}
+.hud-s{font-size:12.5px;color:rgba(255,255,255,.72)}
+.hud-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.18);margin-top:8px;overflow:hidden}
+.hud-bar i{display:block;height:100%;background:#0a84ff;border-radius:2px;width:0}
+.hud-leg{display:flex;align-items:center;gap:7px;color:rgba(255,255,255,.85)}
+.hud-leg i{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}
+.site-toast{position:absolute;left:50%;bottom:44px;transform:translate(-50%,12px);z-index:3;display:flex;align-items:center;gap:8px;white-space:nowrap;
+  background:rgba(28,28,30,.72);color:#fff;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);
+  padding:9px 16px;border-radius:999px;font-size:13.5px;font-weight:500;opacity:0;pointer-events:none;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+.site-toast.show{animation:sitetoast 3.2s ease forwards}
+@keyframes sitetoast{0%{opacity:0;transform:translate(-50%,12px)}10%,78%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-6px)}}
+.site-hint{position:absolute;right:16px;bottom:12px;font-size:11px;color:rgba(255,255,255,.55);pointer-events:none}
+.site-ctrl{display:flex;align-items:center;gap:14px 18px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--border)}
+.site-play{min-width:118px;justify-content:center}
+.site-range{flex:1;min-width:220px;position:relative;padding-bottom:16px}
+.site-range input{width:100%;accent-color:var(--accent)}
+.site-ticks{position:absolute;left:8px;right:8px;bottom:0;height:16px}
+.site-ticks span{position:absolute;font-size:10.5px;color:var(--muted);transform:translateX(-2px);white-space:nowrap;border-left:1px solid var(--border-strong);padding-left:4px;top:1px;line-height:14px}
+.site-ticks i{position:absolute;top:-12px;width:3px;height:6px;border-radius:2px;transform:translateX(-1px)}
+.site-log{max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.site-log .lg{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 8px;border-radius:9px}
+.site-log .lg:first-child{background:var(--accent-soft)}
+.site-log .lg.warn{color:var(--warn)}
+.site-log .lg-t{font-variant-numeric:tabular-nums;color:var(--muted);min-width:52px;font-size:12px}
+.site-ul{margin:0;padding-left:18px;color:var(--text-2);font-size:13.5px}
+.site-ul li+li{margin-top:7px}
+@media (max-width:860px){.site-hud.tr{display:none}.site-stage{height:460px}.site-hint{display:none}.hud-m{font-size:20px}.site-hud.tl{min-width:0;left:10px;top:10px;padding:9px 12px}}
+
 @media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){
   .topbar-in{flex-wrap:wrap;padding:8px 16px;gap:8px}
@@ -734,7 +772,7 @@ function aggYear(values, mode, years){
 const LS_KEY = 'kapplan.studio.v1';
 const PAGES = [
   ['input','Eingaben'], ['overview','Übersicht'], ['monthly','Monate'], ['capacity','Kapazität'],
-  ['schedule','Zeitplan'], ['simulation','Simulation'], ['charts','Grafiken']
+  ['schedule','Zeitplan'], ['simulation','Simulation'], ['site','Werk live'], ['charts','Grafiken']
 ];
 const PAGE_INFO = {
   input:     ['Blatt 1 · Eingaben', 'Alle Annahmen an einem Ort', 'Zeitraum, Jahresmodell, Absatz, Anlagentypen mit Ramp-up und Serienfertigung, Personal und Planungsmethode – jede Änderung rechnet alle Blätter sofort neu.'],
@@ -743,11 +781,12 @@ const PAGE_INFO = {
   capacity:  ['Blatt 4 · Kapazitätsberechnung', 'Anlagen & Start of Production', 'Wie viele Anlagen werden benötigt und wann müssen sie produzieren? Drei Rechenmethoden im Vergleich, Anzahl und SOP individuell übersteuerbar.'],
   schedule:  ['Blatt 5 · Zeitplanung', 'Vom Auftrag bis zur Serie', 'Aus der Kapazitätsrechnung abgeleitet: Bestellung, Lieferung & Installation, Ramp-up und Serienfertigung je Anlage.'],
   simulation:['Blatt 6 · Simulation', 'Was passiert, wenn es anders kommt?', 'Monte-Carlo-Simulation des Zeitplans mit Absatzschwankungen (über Jahresgrenzen fortlaufend), OEE-Streuung und Ramp-up-Verzug.'],
-  charts:    ['Blatt 7 · Grafiken', 'Alles auf einen Blick', 'Absatz, Output, Anlagen, Personal und Auslastung – Zeitraum, Granularität und Darstellung oben einstellen, Serien per Legende ein- und ausblenden.']
+  site:      ['Blatt 7 · Werk live', 'Das Werk in Bewegung', 'Draufsicht als Animation: Anlagen werden bestellt, angeliefert, montiert, fahren hoch und produzieren. Teile, Personal, Lager und LKW folgen Monat für Monat dem Plan oder einem Simulationslauf.'],
+  charts:    ['Blatt 8 · Grafiken', 'Alles auf einen Blick', 'Absatz, Output, Anlagen, Personal und Auslastung – Zeitraum, Granularität und Darstellung oben einstellen, Serien per Legende ein- und ausblenden.']
 };
 
 let S = loadState(), M = null, SIM = null;
-const ui = { page:'input', monthYear:0, range:'all', gran:'month', demandKind:'bar', capType:0 };
+const ui = { siteT:null, siteSpeed:0.35, siteScen:'plan', siteRun:1, siteCam:true, sitePlaying:true, page:'input', monthYear:0, range:'all', gran:'month', demandKind:'bar', capType:0 };
 try { const u = JSON.parse(localStorage.getItem(LS_KEY+'.ui')||'{}'); Object.assign(ui, u); } catch(e){}
 
 function loadState(){
@@ -1233,7 +1272,7 @@ function afterCharts(){
    Rahmen, Ereignisse
    ===================================================================== */
 const RENDER = { input:[pageInput], overview:[pageOverview,afterOverview], monthly:[pageMonthly,afterMonthly], capacity:[pageCapacity],
-  schedule:[pageSchedule,afterSchedule], simulation:[pageSimulation,afterSimulation], charts:[pageCharts,afterCharts] };
+  schedule:[pageSchedule,afterSchedule], simulation:[pageSimulation,afterSimulation], site:[pageSite,afterSite], charts:[pageCharts,afterCharts] };
 
 function renderTabs(){
   document.getElementById('tabs').innerHTML = PAGES.map(([k,l],i)=>`<button role="tab" data-page="${k}" aria-pressed="${ui.page===k}"><span class="k">${i+1}</span>${l}</button>`).join('');
@@ -1241,6 +1280,7 @@ function renderTabs(){
   document.title = (S.project ? S.project + ' · ' : '') + 'Kapazitätsplanung';
 }
 function render(anim){
+  stopSite();
   renderTabs();
   const [eb, title, lede] = PAGE_INFO[ui.page], [fn, after] = RENDER[ui.page];
   const app = document.getElementById('app');
@@ -1346,6 +1386,519 @@ function init(){
     render();
   };
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { const [,after] = RENDER[ui.page]; if (after) after(); }, 150); });
+}
+/* =====================================================================
+   Blatt 7 – Werk live: animierte Draufsicht (Canvas)
+   ===================================================================== */
+let SITE = null;
+function stopSite(){ if (SITE){ cancelAnimationFrame(SITE.raf); SITE.dead = true; if (SITE.ro) SITE.ro.disconnect(); SITE = null; } }
+
+/* Ein einzelner Simulationslauf (gleiche Logik wie Blatt 6, aber mit Details je Anlage) */
+function simRun(M, seed){
+  const s = M.s, H = M.H, rng = mulberry32(seed >>> 0), N = normalGen(rng);
+  const cv = (+s.demandCV||0)/100, rho = Math.min(0.98, Math.max(0, +s.demandRho||0)), oc = (+s.oeeCV||0)/100, pd = (+s.rampDelayProb||0)/100;
+  const tgt = productTarget(s.method, s, M.demand);
+  let e = N(); const dem = new Float64Array(H);
+  for (let i=0;i<H;i++){ if (i>0) e = rho*e + Math.sqrt(1-rho*rho)*N(); dem[i] = Math.max(0, M.demand[i]*(1+cv*e)); }
+  const delays = [], tf = [], capB = new Float64Array(H).fill(Infinity);
+  M.ctxs.forEach((T,ti) => {
+    const dl = [], cap = new Float64Array(H);
+    M.plan.types[ti].machines.forEach(mc => { let d = 0; if (rng() < pd) d = rng() < 0.65 ? 1 : 2; dl.push(d); const a = T.capArr(mc.sop+d); for (let i=0;i<H;i++) cap[i]+=a[i]; });
+    delays.push(dl);
+    if (T.share <= 0) return;
+    for (let i=0;i<H;i++){ cap[i] *= Math.min(1.15, Math.max(0.55, 1 + oc*N())); capB[i] = Math.min(capB[i], cap[i]/T.share); }
+    const d = Array.from(dem, v=>v*T.share), f = flow(cap, d, tgt ? tgt.map(v=>v*T.share) : null, (+s.startStock||0)*T.share);
+    tf.push({ T, prod:f.prod, stock:f.stock });
+  });
+  for (let i=0;i<H;i++) if (!isFinite(capB[i])) capB[i] = 0;
+  const fl = productFlow(tf, dem, s);
+  return { demand:Array.from(dem), prod:Array.from(fl.prod), stock:Array.from(fl.stock), capB:Array.from(capB), delays };
+}
+
+function pageSite(){
+  const scen = ui.siteScen;
+  return `<div class="card site-card">
+    <div class="site-stage" id="siteStage">
+      <canvas id="siteCv" aria-label="Animierte Draufsicht des Werks"></canvas>
+      <div class="site-hud tl"><div class="hud-k" id="hudScen"></div><div class="hud-m" id="hudMonth">–</div><div class="hud-s" id="hudYear"></div><div class="hud-bar"><i id="hudProg"></i></div></div>
+      <div class="site-hud tr">
+        <div class="hud-leg"><i style="background:#8fb3ff;border:1px dashed #4d7fe0"></i>bestellt</div>
+        <div class="hud-leg"><i style="background:repeating-linear-gradient(45deg,#ffcc00 0 3px,#222 3px 6px)"></i>Installation</div>
+        <div class="hud-leg"><i style="background:#ff9f0a"></i>Ramp-up</div>
+        <div class="hud-leg"><i style="background:#30d158"></i>Serie</div>
+        <div class="hud-leg"><i style="background:#ffd60a;border-radius:50%"></i>Teile</div>
+        <div class="hud-leg"><i style="background:#eef2f7;border-radius:50%;box-shadow:inset 0 0 0 2px #3a4656"></i>Personal</div>
+      </div>
+      <div class="site-toast" id="siteToast"></div>
+      <div class="site-hint">Ziehen = verschieben · Mausrad = zoomen · Doppelklick = Gesamtansicht</div>
+    </div>
+    <div class="site-ctrl">
+      <button class="btn primary sm site-play" id="sitePlay" aria-label="Abspielen/Pause"></button>
+      <div class="site-range"><input type="range" id="siteRange" min="0" max="1000" value="0" aria-label="Zeitpunkt"><div class="site-ticks" id="siteTicks"></div></div>
+      ${segBtns('sspeed', ui.siteSpeed, [[0.15,'0,5×'],[0.35,'1×'],[0.7,'2×'],[1.4,'4×']], 'sm')}
+      ${segBtns('sscen', scen, [['plan','Plan'],['sim','Simulationslauf']], 'sm')}
+      ${scen==='sim' ? `<button class="btn sm" id="siteNewRun">Neuer Lauf #${ui.siteRun}</button>` : ''}
+      <label class="switch small"><input type="checkbox" id="siteCam" ${ui.siteCam?'checked':''}> Kamerafahrt</label>
+    </div>
+  </div>
+  <div class="kpis" id="siteKpis"></div>
+  <div class="grid g2">
+    <div class="card"><div class="card-h"><div><h2>Ereignisse</h2><p>Laufen bei der Wiedergabe mit</p></div></div><div class="site-log" id="siteLog"></div></div>
+    <div class="card"><div class="card-h"><div><h2>Was du siehst</h2><p>Alle Bewegungen sind aus den Planzahlen abgeleitet</p></div></div>
+      <ul class="site-ul">
+        <li><b>Hallenzonen</b> von links nach rechts in Fertigungsreihenfolge: Wareneingang → je Anlagentyp eine Zone → Fertigwarenlager → Versand.</li>
+        <li><b>Stellplätze</b> sind für alle geplanten Anlagen reserviert. Nach der Bestellung erscheinen sie blau gestrichelt, mit Lieferung startet die <b>Baustelle</b>: Stapler bringt die Anlage, Mobilkran und Monteure bauen sie auf.</li>
+        <li><b>Ramp-up</b> (orange Leuchte, Balken = aktuelle Leistung) und <b>Serie</b> (grün). Die Spindel dreht mit der Auslastung.</li>
+        <li><b>Teilefluss</b> ist proportional zur Monatsproduktion, <b>Personal</b> je Anlage und Schicht, <b>Paletten</b> zum Lagerbestand, <b>LKW</b> zum Absatz. Rote, wartende LKW = Lieferrückstand.</li>
+        <li>Im <b>Simulationslauf</b> schwanken Absatz und OEE, einzelne Anlagen starten verspätet (⚠ im Ereignisprotokoll).</li>
+      </ul></div>
+  </div>`;
+}
+
+function afterSite(){
+  stopSite();
+  const stage = document.getElementById('siteStage'), cv = document.getElementById('siteCv');
+  if (!stage || !cv) return;
+  const s = S, H = M.H, p = M.plan;
+  const run = ui.siteScen === 'sim' ? simRun(M, (+s.seed||1)*7919 + ui.siteRun*104729) : null;
+  const data = run || { demand:M.demand, prod:Array.from(p.prod), stock:Array.from(p.stock), capB:Array.from(p.capB), delays:p.types.map(x=>x.machines.map(()=>0)) };
+
+  /* ---------- Layout der Welt ---------- */
+  const MW = 66, MH = 42, GX = 100, GY = 80;
+  const maxN = Math.max(1, ...p.types.map(x=>x.machines.length));
+  const ROWS = Math.min(4, Math.max(2, maxN));
+  const hallX = 170, hallY = 70, hallH = 70 + ROWS*GY + 70, aisleY = hallY + hallH - 44;
+  const zones = []; let zx = hallX + 120;
+  const machines = [];
+  p.types.forEach((x,ti) => {
+    const n = x.machines.length, cols = Math.max(1, Math.ceil(n/ROWS)), w = cols*GX + 40;
+    const z = { x:zx, w, ti, x0:x, color:`--s${x.T.t.slot}`, slots:[] };
+    x.machines.forEach((mc,j) => {
+      const c = Math.floor(j/ROWS), r = j % ROWS, t = x.T.t, dl = data.delays[ti][j] || 0;
+      const ins = +t.install||0, lead = +t.lead||0, sop = mc.sop + dl;
+      const m = { ti, j, n:mc.n, name:t.name, slot:t.slot, x: zx + 20 + c*GX + GX/2, y: hallY + 62 + r*GY + GY/2 - 8,
+        order: mc.sop - ins - lead, inst: mc.sop - ins, sop, serie: sop + x.T.rm, rm:x.T.rm, delay:dl, staff:+t.staff||0, T:x.T, src:mc.src, rot:Math.random()*6 };
+      z.slots.push(m); machines.push(m);
+    });
+    zones.push(z); zx += w;
+  });
+  const whX = zx, whW = 200, hallW = whX + whW - hallX, yardX = hallX + hallW;
+  const W = yardX + 250, Hw = hallY + hallH + 120, roadY = hallY + hallH + 62;
+  const docks = Array.from({length:Math.min(5, Math.max(3, Math.floor((hallH-60)/62)))}, (_,k)=>({ y: hallY + 52 + k*62, busy:null }));
+  const colors = {}; for (let k=1;k<=8;k++) colors[k] = cssVar('--s'+k) || '#2a78d6';
+
+  /* ---------- Ereignisse ---------- */
+  const events = [];
+  machines.forEach(m => {
+    const nm = m.name + ' ' + m.n;
+    events.push({ t:m.order, k:'order', txt:`${nm}: Bestellung ausgelöst`, slot:m.slot });
+    events.push({ t:m.inst, k:'deliv', txt:`${nm}: Anlieferung, Baustelle startet`, slot:m.slot });
+    if (m.delay) events.push({ t:m.inst + 0.5, k:'warn', txt:`${nm}: Verzug bei Inbetriebnahme (+${m.delay} Mon.)`, slot:m.slot });
+    events.push({ t:m.sop, k:'sop', txt:`${nm}: Start of Production, Ramp-up`, slot:m.slot });
+    if (m.rm) events.push({ t:m.serie, k:'serie', txt:`${nm}: Serienreife erreicht`, slot:m.slot });
+  });
+  for (let y=0;y<s.years;y++) events.push({ t:y*12, k:'year', txt:`Planungsjahr ${yearLabel(s,y)} beginnt`, slot:0 });
+  events.sort((a,b)=>a.t-b.t);
+  const t0 = Math.min(0, ...events.map(e=>e.t)) - 0.5, t1 = H;
+  if (ui.siteT == null || ui.siteT < t0 || ui.siteT > t1) ui.siteT = t0;
+
+  /* ---------- Skalen ---------- */
+  const maxProd = Math.max(1, ...data.prod), maxDem = Math.max(1, ...data.demand);
+  const maxStock = Math.max(0, ...data.stock.map(v=>Math.max(0,v)));
+  const maxBack = Math.max(1, ...data.stock.map(v=>Math.max(0,-v)));
+  const at = (arr, t) => { const i = Math.floor(t); if (i < 0) return 0; return arr[Math.min(H-1, i)] || 0; };
+
+  /* ---------- Statische Szene vorrendern ---------- */
+  const SC = 2, bg = document.createElement('canvas'); bg.width = W*SC; bg.height = Hw*SC;
+  (function paintStatic(){
+    const g = bg.getContext('2d'); g.scale(SC, SC);
+    // Gelände
+    let gr = g.createLinearGradient(0,0,W,Hw); gr.addColorStop(0,'#5d7a4a'); gr.addColorStop(1,'#4b6640'); g.fillStyle = gr; g.fillRect(0,0,W,Hw);
+    for (let k=0;k<900;k++){ g.fillStyle = `rgba(${Math.random()<.5?'255,255,255':'0,0,0'},${Math.random()*0.05})`; g.fillRect(Math.random()*W, Math.random()*Hw, 2, 2); }
+    // Asphaltflächen
+    const asph = (x,y,w,h) => { g.fillStyle = '#3b3f45'; g.fillRect(x,y,w,h); for (let k=0;k<w*h/90;k++){ g.fillStyle = `rgba(255,255,255,${Math.random()*0.035})`; g.fillRect(x+Math.random()*w, y+Math.random()*h, 1.5, 1.5); } };
+    asph(0, roadY-22, W, 44);                    // Werksstraße
+    asph(18, hallY+20, hallX-18, roadY-hallY-20); // Hof Wareneingang
+    asph(yardX, hallY-10, W-yardX, roadY-hallY+10); // Versandhof
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 2; g.setLineDash([16,14]); g.beginPath(); g.moveTo(0,roadY); g.lineTo(W,roadY); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.5;
+    docks.forEach(d => { g.beginPath(); g.moveTo(yardX, d.y-26); g.lineTo(yardX+120, d.y-26); g.stroke(); });
+    g.beginPath(); g.moveTo(yardX, docks[docks.length-1].y+26); g.lineTo(yardX+120, docks[docks.length-1].y+26); g.stroke();
+    // Bäume
+    const tree = (x,y,r) => { g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.arc(x+5,y+6,r,0,7); g.fill(); const t = g.createRadialGradient(x-r*.3,y-r*.3,1,x,y,r); t.addColorStop(0,'#7fae5c'); t.addColorStop(1,'#3d6b2f'); g.fillStyle = t; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); };
+    for (let k=0;k<Math.floor(W/70);k++){ tree(30+k*70+Math.random()*20, 26+Math.random()*16, 11+Math.random()*6); tree(20+k*70+Math.random()*30, Hw-22-Math.random()*10, 10+Math.random()*6); }
+    // Hallenschatten
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.filter = 'blur(10px)'; g.fillRect(hallX+12, hallY+14, hallW, hallH); g.filter = 'none';
+    // Hallenboden
+    gr = g.createLinearGradient(hallX, hallY, hallX+hallW, hallY+hallH); gr.addColorStop(0,'#d9dcdf'); gr.addColorStop(1,'#c4c8cd');
+    g.fillStyle = gr; g.fillRect(hallX, hallY, hallW, hallH);
+    g.strokeStyle = 'rgba(0,0,0,.05)'; g.lineWidth = 1;
+    for (let x=hallX; x<hallX+hallW; x+=24){ g.beginPath(); g.moveTo(x,hallY); g.lineTo(x,hallY+hallH); g.stroke(); }
+    for (let y=hallY; y<hallY+hallH; y+=24){ g.beginPath(); g.moveTo(hallX,y); g.lineTo(hallX+hallW,y); g.stroke(); }
+    // Oberlichter (Lichtflecken)
+    for (let x=hallX+60; x<hallX+hallW; x+=140){ const l = g.createRadialGradient(x, hallY+hallH*.45, 5, x, hallY+hallH*.45, 110); l.addColorStop(0,'rgba(255,255,240,.30)'); l.addColorStop(1,'rgba(255,255,240,0)'); g.fillStyle = l; g.fillRect(x-110, hallY, 220, hallH); }
+    // Zonen
+    const zoneTint = (x,w,c) => { g.fillStyle = c; g.fillRect(x+3, hallY+3, w-6, aisleY-hallY-24); };
+    zoneTint(hallX, 120, 'rgba(90,110,140,.10)');
+    zones.forEach((z,k) => zoneTint(z.x, z.w, k%2 ? 'rgba(60,90,140,.06)' : 'rgba(60,90,140,.12)'));
+    zoneTint(whX, whW, 'rgba(140,110,70,.12)');
+    // Gang mit Markierung
+    g.fillStyle = 'rgba(70,80,95,.10)'; g.fillRect(hallX, aisleY-18, hallW, 36);
+    g.strokeStyle = '#e8b400'; g.lineWidth = 2.5;
+    [aisleY-18, aisleY+18].forEach(y => { g.beginPath(); g.moveTo(hallX+6,y); g.lineTo(hallX+hallW-6,y); g.stroke(); });
+    g.strokeStyle = 'rgba(232,180,0,.5)'; g.lineWidth = 1; g.setLineDash([8,8]);
+    g.beginPath(); g.moveTo(hallX+6,aisleY); g.lineTo(hallX+hallW-6,aisleY); g.stroke(); g.setLineDash([]);
+    // Zonentrenner
+    g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 1.5; g.setLineDash([6,5]);
+    [hallX+120, ...zones.map(z=>z.x+z.w)].forEach(x => { g.beginPath(); g.moveTo(x, hallY+6); g.lineTo(x, aisleY-22); g.stroke(); });
+    g.setLineDash([]);
+    // Lagerregale
+    for (let r=0;r<3;r++){ const ry = hallY + 58 + r*((aisleY-hallY-90)/3); g.fillStyle = '#7d8794'; g.fillRect(whX+18, ry, whW-36, 4); g.fillRect(whX+18, ry+30, whW-36, 4);
+      for (let x=whX+18; x<=whX+whW-18; x+=20){ g.fillStyle = '#e07b24'; g.fillRect(x-1.5, ry, 3, 34); } }
+    // Wände
+    g.strokeStyle = '#59606a'; g.lineWidth = 7; g.strokeRect(hallX, hallY, hallW, hallH);
+    g.strokeStyle = '#8a929c'; g.lineWidth = 2; g.strokeRect(hallX+4, hallY+4, hallW-8, hallH-8);
+    // Tore
+    const door = (x,y,vertical,len) => { g.fillStyle = '#ffcc00'; vertical ? g.fillRect(x-5,y-len/2,10,len) : g.fillRect(x-len/2,y-5,len,10); g.fillStyle = '#2b2f35'; vertical ? g.fillRect(x-3,y-len/2+3,6,len-6) : g.fillRect(x-len/2+3,y-3,len-6,6); };
+    door(hallX, aisleY, true, 40);
+    docks.forEach(d => door(hallX+hallW, d.y, true, 34));
+    // Schriften
+    g.fillStyle = 'rgba(30,35,45,.55)'; g.font = '600 11px -apple-system,Segoe UI,sans-serif'; g.textAlign = 'center';
+    g.fillText('WARENEINGANG', hallX+60, hallY+24); g.fillText('FERTIGWARENLAGER', whX+whW/2, hallY+24);
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.fillText('VERSAND', yardX+125, hallY+6); g.fillText('ANLIEFERUNG', hallX/2+8, hallY+38);
+    // Dachkante (Schnitt) – leichte Kontur
+    g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1;
+    for (let x=hallX+70; x<hallX+hallW; x+=70){ g.beginPath(); g.moveTo(x,hallY+2); g.lineTo(x,hallY+8); g.stroke(); }
+  })();
+
+  /* ---------- Kamera ---------- */
+  const st = { raf:0, dead:false, last:performance.now(), cam:{ x:W/2, y:Hw/2, z:1 }, tgt:{ x:W/2, y:Hw/2, z:1 }, drag:null, manual:false,
+               parts:[], trucksOut:[], trucksIn:[], forks:[], spawnAcc:0, truckAcc:0, inAcc:0, lastT:ui.siteT, toastT:0, logN:-1, hud:0 };
+  SITE = st;
+  let VW = 0, VH = 0, dpr = 1, fitZ = 1;
+  function resize(){
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    VW = stage.clientWidth; VH = stage.clientHeight;
+    cv.width = Math.round(VW*dpr); cv.height = Math.round(VH*dpr); cv.style.width = VW+'px'; cv.style.height = VH+'px';
+    fitZ = Math.min(VW/W, VH/Hw) * 0.98;
+    if (!st.manual){ st.cam.z = st.tgt.z = fitZ; }
+  }
+  resize();
+  st.ro = new ResizeObserver(() => { if (!st.dead) resize(); }); st.ro.observe(stage);
+  const toWorld = (sx, sy) => ({ x: (sx - VW/2)/st.cam.z + st.cam.x, y: (sy - VH/2)/st.cam.z + st.cam.y });
+  cv.addEventListener('pointerdown', e => { st.drag = { x:e.clientX, y:e.clientY, cx:st.cam.x, cy:st.cam.y }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (!st.drag) return; const dx = e.clientX-st.drag.x, dy = e.clientY-st.drag.y; if (Math.abs(dx)+Math.abs(dy) > 3){ setManual(); st.tgt.x = st.cam.x = st.drag.cx - dx/st.cam.z; st.tgt.y = st.cam.y = st.drag.cy - dy/st.cam.z; } });
+  cv.addEventListener('pointerup', () => { st.drag = null; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); setManual(); const r = cv.getBoundingClientRect(), w = toWorld(e.clientX-r.left, e.clientY-r.top);
+    const nz = Math.min(fitZ*5, Math.max(fitZ*0.7, st.tgt.z * Math.exp(-e.deltaY*0.0015)));
+    st.tgt.x = w.x - (e.clientX-r.left - VW/2)/nz; st.tgt.y = w.y - (e.clientY-r.top - VH/2)/nz; st.tgt.z = nz; }, { passive:false });
+  cv.addEventListener('dblclick', () => { st.manual = false; ui.siteCam = true; const c = document.getElementById('siteCam'); if (c) c.checked = true; });
+  function setManual(){ st.manual = true; if (ui.siteCam){ ui.siteCam = false; const c = document.getElementById('siteCam'); if (c) c.checked = false; } }
+
+  /* ---------- Bedienelemente ---------- */
+  const playBtn = document.getElementById('sitePlay'), range = document.getElementById('siteRange');
+  const setPlayIcon = () => { playBtn.innerHTML = ui.sitePlaying ? '❚❚ Pause' : '▶︎ Abspielen'; };
+  setPlayIcon();
+  playBtn.onclick = () => { if (!ui.sitePlaying && ui.siteT >= t1-0.01) ui.siteT = t0; ui.sitePlaying = !ui.sitePlaying; setPlayIcon(); save(); };
+  range.oninput = () => { ui.siteT = t0 + (t1-t0)*range.value/1000; st.parts.length = 0; st.logN = -1; };
+  document.getElementById('siteCam').onchange = e => { ui.siteCam = e.target.checked; st.manual = !e.target.checked; save(); };
+  const nr = document.getElementById('siteNewRun'); if (nr) nr.onclick = () => { ui.siteRun++; save(); render(); };
+  stage.parentElement.querySelectorAll('[data-sspeed]').forEach(b => b.onclick = () => { ui.siteSpeed = +b.dataset.sspeed; save(); stage.parentElement.querySelectorAll('[data-sspeed]').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
+  stage.parentElement.querySelectorAll('[data-sscen]').forEach(b => b.onclick = () => { ui.siteScen = b.dataset.sscen; save(); render(); });
+  // Jahresmarken unter dem Regler
+  document.getElementById('siteTicks').innerHTML = Array.from({length:s.years},(_,y)=>`<span style="left:${((y*12-t0)/(t1-t0)*100).toFixed(2)}%">${esc(yearLabel(s,y))}</span>`).join('')
+    + events.filter(e=>e.k==='sop').map(e=>`<i style="left:${((e.t-t0)/(t1-t0)*100).toFixed(2)}%;background:${colors[e.slot]}"></i>`).join('');
+
+  /* ---------- Hilfen ---------- */
+  const phaseOf = (m, t) => t < m.order ? 0 : t < m.inst ? 1 : t < m.sop ? 2 : t < m.serie ? 3 : 4; // frei, bestellt, Installation, Ramp-up, Serie
+  const ease = x => x<0?0:x>1?1:x*x*(3-2*x);
+  function rr(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+  function shadow(g, on, blur=10, off=5){ if (on){ g.shadowColor = 'rgba(0,0,0,.38)'; g.shadowBlur = blur*st.cam.z*dpr; g.shadowOffsetX = off*st.cam.z*dpr; g.shadowOffsetY = off*st.cam.z*dpr; } else { g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetX = 0; g.shadowOffsetY = 0; } }
+  function worker(g, x, y, ang, helmet){
+    g.save(); g.translate(x,y); g.rotate(ang);
+    shadow(g, true, 3, 1.5);
+    g.fillStyle = helmet ? '#ff9f0a' : '#2f6fdb'; g.beginPath(); g.ellipse(0,0,5.2,3.2,0,0,7); g.fill();
+    shadow(g, false);
+    g.fillStyle = helmet ? '#ffd60a' : '#f1e1c9'; g.beginPath(); g.arc(0,0,2.4,0,7); g.fill();
+    g.restore();
+  }
+  function truck(g, x, y, ang, col, load, waiting){
+    g.save(); g.translate(x,y); g.rotate(ang);
+    shadow(g, true, 6, 3);
+    g.fillStyle = '#e9edf2'; rr(g, -34, -9, 50, 18, 2.5); g.fill();             // Auflieger
+    shadow(g, false);
+    if (load > 0){ g.fillStyle = '#b98a52'; for (let k=0;k<Math.round(load*6);k++) g.fillRect(-31 + (k%3)*15, -6 + Math.floor(k/3)*7, 13, 5.5); }
+    g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1; rr(g, -34, -9, 50, 18, 2.5); g.stroke();
+    g.fillStyle = col; rr(g, 18, -8, 15, 16, 3); g.fill();                       // Zugmaschine
+    g.fillStyle = 'rgba(20,30,40,.55)'; g.fillRect(28, -6.5, 3, 13);             // Scheibe
+    if (waiting){ g.fillStyle = 'rgba(255,59,48,.9)'; g.beginPath(); g.arc(-34, -9, 3.2, 0, 7); g.fill(); }
+    g.restore();
+  }
+  function forklift(g, x, y, ang, load){
+    g.save(); g.translate(x,y); g.rotate(ang); shadow(g, true, 4, 2);
+    g.fillStyle = '#ff9f0a'; rr(g, -8, -6, 14, 12, 2.5); g.fill(); shadow(g, false);
+    g.fillStyle = '#2b2f35'; g.fillRect(-4, -4, 6, 8); g.fillStyle = '#6b7380'; g.fillRect(6, -5, 8, 2); g.fillRect(6, 3, 8, 2);
+    if (load){ g.fillStyle = '#b98a52'; g.fillRect(6, -5.5, 10, 11); g.strokeStyle = 'rgba(0,0,0,.25)'; g.strokeRect(6, -5.5, 10, 11); }
+    g.restore();
+  }
+  // Wegpunkte entlang einer Polylinie mit konstanter Geschwindigkeit
+  function pathPos(pts, d){
+    for (let k=1;k<pts.length;k++){ const a = pts[k-1], b = pts[k], L = Math.hypot(b[0]-a[0], b[1]-a[1]);
+      if (d <= L || k === pts.length-1){ const f = L ? Math.min(1, d/L) : 1; return { x:a[0]+(b[0]-a[0])*f, y:a[1]+(b[1]-a[1])*f, ang:Math.atan2(b[1]-a[1], b[0]-a[0]), done: k===pts.length-1 && d>=L, k }; }
+      d -= L; }
+    const l = pts[pts.length-1]; return { x:l[0], y:l[1], ang:0, done:true };
+  }
+
+  /* ---------- Teilefluss ---------- */
+  function spawnPart(t){
+    const route = [[hallX+20, aisleY + (Math.random()-.5)*14]];
+    let x = hallX+20;
+    for (const z of zones){
+      if (z.x0.T.share <= 0) continue;
+      const act = z.slots.filter(m => phaseOf(m,t) >= 3);
+      if (!act.length) return;
+      const wts = act.map(m => phaseOf(m,t) === 4 ? 1 : m.T.factor(t - m.sop)); let r = Math.random()*wts.reduce((a,b)=>a+b,0), m = act[0];
+      for (let k=0;k<act.length;k++){ r -= wts[k]; if (r <= 0){ m = act[k]; break; } }
+      const ly = aisleY + (Math.random()-.5)*14;
+      const lx = m.x - MW/2 - 17;
+      route.push([lx - 3, ly], [lx - 3, m.y - 5], [m.x - MW/2 + 4, m.y - 5], ['dwell', m], [lx + 3, m.y + 6], [lx + 3, ly]);
+    }
+    route.push([whX + 30 + Math.random()*(whW-60), aisleY + (Math.random()-.5)*14]);
+    // Segmente mit Verweilpunkten aufbereiten
+    const segs = []; let cur = [];
+    route.forEach(pt => { if (pt[0] === 'dwell'){ segs.push({ pts:cur, dwell:pt[1] }); cur = [cur[cur.length-1]]; } else cur.push(pt); });
+    segs.push({ pts:cur, dwell:null });
+    st.parts.push({ segs, si:0, d:0, w:0 });
+  }
+
+  /* ---------- Hauptschleife ---------- */
+  function frame(now){
+    if (st.dead) return;
+    const dt = Math.min(0.05, (now - st.last)/1000); st.last = now;
+    if (ui.sitePlaying){ ui.siteT += dt*ui.siteSpeed; if (ui.siteT >= t1){ ui.siteT = t1; ui.sitePlaying = false; setPlayIcon(); } }
+    const t = ui.siteT, i = Math.floor(t);
+    if (document.activeElement !== range) range.value = Math.round((t-t0)/(t1-t0)*1000);
+    const prod = at(data.prod,t), dem = at(data.demand,t), stock = at(data.stock,t), capB = at(data.capB,t);
+    const running = ui.sitePlaying ? 1 : 0;
+
+    // Kamera: Gesamtansicht oder Fahrt zur aktiven Baustelle
+    if (!st.manual){
+      const site = machines.find(m => t >= m.inst - 0.15 && t < m.sop + 0.35);
+      const drift = Math.sin(now/5200)*0.02;
+      if (ui.siteCam && site){ st.tgt.x = site.x*0.65 + W/2*0.35; st.tgt.y = site.y*0.65 + Hw/2*0.35; st.tgt.z = fitZ*1.75; }
+      else { st.tgt.x = W/2 + Math.sin(now/7000)*W*0.01; st.tgt.y = Hw/2; st.tgt.z = fitZ*(1 + (ui.siteCam ? drift + 0.02 : 0)); }
+    }
+    const k = 1 - Math.exp(-dt*(st.manual ? 12 : 1.6));
+    st.cam.x += (st.tgt.x - st.cam.x)*k; st.cam.y += (st.tgt.y - st.cam.y)*k; st.cam.z += (st.tgt.z - st.cam.z)*k;
+
+    // Teile erzeugen (proportional zur Monatsproduktion)
+    if (running && prod > 0){ st.spawnAcc += dt * (1.5 + 13*prod/maxProd); while (st.spawnAcc >= 1){ st.spawnAcc--; if (st.parts.length < 420) spawnPart(t); } }
+    // Versand-LKW (proportional zum Absatz)
+    if (running && dem > 0){ st.truckAcc += dt * (0.08 + 0.42*dem/maxDem);
+      if (st.truckAcc >= 1){ st.truckAcc = 0; const d = docks.find(x=>!x.busy);
+        if (d){ const tr = { dock:d, d:0, state:'in', wait:0, col: stock < 0 ? '#ff453a' : ['#0a84ff','#5e5ce6','#30b0c7','#8e8e93'][Math.floor(Math.random()*4)], load:0 };
+          tr.pts = [[W+60, roadY+10],[yardX+170, roadY+10],[yardX+170, d.y],[yardX+40, d.y]]; d.busy = tr; st.trucksOut.push(tr); } } }
+    // Zuliefer-LKW (proportional zur Produktion)
+    if (running && prod > 0){ st.inAcc += dt * (0.05 + 0.3*prod/maxProd);
+      if (st.inAcc >= 1 && st.trucksIn.length < 2){ st.inAcc = 0; st.trucksIn.push({ d:0, state:'in', wait:0, pts:[[-60, roadY-10],[hallX-80, roadY-10],[hallX-80, aisleY],[hallX-40, aisleY]] }); } }
+
+    const g = cv.getContext('2d');
+    g.setTransform(1,0,0,1,0,0); g.fillStyle = '#2a3326'; g.fillRect(0,0,cv.width,cv.height);
+    g.setTransform(dpr*st.cam.z, 0, 0, dpr*st.cam.z, dpr*(VW/2 - st.cam.x*st.cam.z), dpr*(VH/2 - st.cam.y*st.cam.z));
+    g.drawImage(bg, 0, 0, W, Hw);
+
+    // Zonenbeschriftung
+    g.textAlign = 'center';
+    zones.forEach(z => {
+      const ph = z.slots.map(m=>phaseOf(m,t)), ser = ph.filter(x=>x===4).length, ru = ph.filter(x=>x===3).length, bau = ph.filter(x=>x===2).length;
+      g.fillStyle = colors[z.x0.T.t.slot]; g.fillRect(z.x+14, hallY+14, 4, 26);
+      g.textAlign = 'left'; g.fillStyle = '#1d232c'; g.font = '700 12px -apple-system,Segoe UI,sans-serif'; g.fillText(z.x0.T.t.name.toUpperCase(), z.x+24, hallY+25);
+      g.fillStyle = 'rgba(29,35,44,.65)'; g.font = '500 10px -apple-system,Segoe UI,sans-serif';
+      g.fillText(`${ser} Serie · ${ru} Ramp-up${bau?` · ${bau} Montage`:''}`, z.x+24, hallY+38);
+      const xt = p.types[z.ti]; const u = xt.cap[Math.max(0,Math.min(H-1,i))] > 0 ? xt.prod[Math.max(0,Math.min(H-1,i))]/xt.cap[Math.max(0,Math.min(H-1,i))] : 0;
+      if (i >= 0){ g.fillStyle = 'rgba(0,0,0,.1)'; g.fillRect(z.x+24, hallY+43, 60, 3); g.fillStyle = u > 0.95 ? '#ff453a' : colors[z.x0.T.t.slot]; g.fillRect(z.x+24, hallY+43, 60*Math.min(1,u), 3); }
+    });
+    g.textAlign = 'center';
+
+    // Anlagen
+    machines.forEach(m => {
+      const ph = phaseOf(m, t), x = m.x, y = m.y;
+      if (ph === 0){
+        g.strokeStyle = 'rgba(40,50,60,.22)'; g.lineWidth = 1.2; g.setLineDash([4,4]); rr(g, x-MW/2, y-MH/2, MW, MH, 6); g.stroke(); g.setLineDash([]);
+        g.fillStyle = 'rgba(40,50,60,.35)'; g.font = '500 9px -apple-system,sans-serif'; g.fillText('reserviert', x, y+3); return;
+      }
+      if (ph === 1){
+        const f = (t - m.order)/Math.max(0.01, m.inst - m.order);
+        g.fillStyle = 'rgba(80,130,255,.12)'; rr(g, x-MW/2, y-MH/2, MW, MH, 6); g.fill();
+        g.strokeStyle = '#4d7fe0'; g.lineWidth = 1.5; g.setLineDash([5,4]); g.lineDashOffset = -now/60; g.stroke(); g.setLineDash([]); g.lineDashOffset = 0;
+        g.strokeStyle = 'rgba(77,127,224,.25)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y-4, 9, 0, 7); g.stroke();
+        g.strokeStyle = '#4d7fe0'; g.beginPath(); g.arc(x, y-4, 9, -Math.PI/2, -Math.PI/2 + Math.PI*2*Math.min(1,f)); g.stroke();
+        g.fillStyle = '#2c5cc5'; g.font = '600 8.5px -apple-system,sans-serif'; g.fillText('bestellt · ' + monthLabel(s, Math.ceil(m.inst)), x, y+15); return;
+      }
+      if (ph === 2){
+        const f = (t - m.inst)/Math.max(0.01, m.sop - m.inst);
+        // Absperrung
+        g.lineWidth = 3; g.strokeStyle = '#ffcc00'; rr(g, x-MW/2-8, y-MH/2-8, MW+16, MH+16, 4); g.stroke();
+        g.strokeStyle = '#1c1c1e'; g.setLineDash([5,5]); g.stroke(); g.setLineDash([]);
+        // Anlieferung per Stapler
+        const fa = ease(f/0.3);
+        if (f < 0.3){
+          const pts = [[hallX+30, aisleY],[x, aisleY],[x, y+MH/2+6]], L = Math.abs(x-hallX-30) + Math.abs(aisleY - y - MH/2 - 6), pp = pathPos(pts, L*fa);
+          forklift(g, pp.x, pp.y, pp.ang, false);
+          g.save(); g.translate(pp.x + Math.cos(pp.ang)*24, pp.y + Math.sin(pp.ang)*24); g.rotate(pp.ang); shadow(g,true,5,2); g.fillStyle = '#c69a62'; g.fillRect(-14,-11,28,22); shadow(g,false); g.strokeStyle = '#8d6738'; g.lineWidth = 1; g.strokeRect(-14,-11,28,22); g.beginPath(); g.moveTo(-14,-11); g.lineTo(14,11); g.moveTo(14,-11); g.lineTo(-14,11); g.stroke(); g.restore();
+        } else {
+          const fb = ease((f-0.3)/0.7);
+          g.globalAlpha = 0.25 + 0.75*fb; drawMachine(g, m, x, y, 2, fb, now); g.globalAlpha = 1;
+          // Gerüst
+          g.strokeStyle = `rgba(120,130,140,${0.8*(1-fb)})`; g.lineWidth = 1;
+          for (let gx=-MW/2; gx<=MW/2; gx+=11){ g.beginPath(); g.moveTo(x+gx, y-MH/2-4); g.lineTo(x+gx, y+MH/2+4); g.stroke(); }
+          // Kisten
+          for (let c=0;c<Math.round(3*(1-fb));c++){ g.fillStyle = '#c69a62'; g.fillRect(x+MW/2+10, y-MH/2+c*13, 10, 10); }
+          // Mobilkran
+          const ca = -Math.PI/2 + Math.sin(now/900 + m.j)*0.9, bx = x - MW/2 - 18, by = y - MH/2 - 6;
+          shadow(g, true, 6, 3); g.fillStyle = '#ffcc00'; rr(g, bx-9, by-6, 18, 12, 2); g.fill(); shadow(g, false);
+          g.strokeStyle = '#d4a800'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(ca)*52, by + Math.sin(ca)*52 + 30); g.stroke(); g.lineCap = 'butt';
+          g.fillStyle = '#1c1c1e'; g.beginPath(); g.arc(bx + Math.cos(ca)*52, by + Math.sin(ca)*52 + 30, 2.4, 0, 7); g.fill();
+          // Funken
+          if (running) for (let q=0;q<3;q++){ if (Math.random()<.5){ g.fillStyle = `rgba(255,${200+Math.random()*55|0},120,${.6+Math.random()*.4})`; g.beginPath(); g.arc(x + (Math.random()-.5)*MW*.8, y + (Math.random()-.5)*MH*.8, 1+Math.random()*1.5, 0, 7); g.fill(); } }
+        }
+        // Monteure
+        for (let w=0; w<4; w++){ const a = now/1400*(w%2?1:-1) + w*1.6 + m.j; worker(g, x + Math.cos(a)*(MW/2+4), y + Math.sin(a)*(MH/2+5), a + Math.PI/2, true); }
+        // Fortschritt
+        g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x-MW/2, y+MH/2+12, MW, 4); g.fillStyle = '#ffcc00'; g.fillRect(x-MW/2, y+MH/2+12, MW*Math.min(1,f), 4);
+        return;
+      }
+      // Ramp-up / Serie
+      const fac = ph === 3 ? m.T.factor(t - m.sop) : 1;
+      drawMachine(g, m, x, y, ph, fac, now);
+      // Personal an der Anlage
+      const nW = Math.max(1, Math.round(m.staff));
+      for (let w=0; w<nW; w++){ const a = Math.PI*0.8 + w*0.9 + Math.sin(now/1700 + w + m.j)*0.08; worker(g, x - MW/2 - 6 + w*9, y - MH/2 - 9 + Math.sin(now/600 + w)*0.8, a, false); }
+    });
+
+    function drawMachine(g, m, x, y, ph, fac, now){
+      const col = colors[m.slot];
+      shadow(g, true, 12, 6);
+      const gr = g.createLinearGradient(x-MW/2, y-MH/2, x+MW/2, y+MH/2); gr.addColorStop(0,'#f4f6f8'); gr.addColorStop(.55,'#cfd5dc'); gr.addColorStop(1,'#a9b2bd');
+      g.fillStyle = gr; rr(g, x-MW/2, y-MH/2, MW, MH, 6); g.fill();
+      shadow(g, false);
+      g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1; g.stroke();
+      g.save(); rr(g, x-MW/2, y-MH/2, MW, MH, 6); g.clip(); g.fillStyle = col; g.fillRect(x-MW/2, y-MH/2, 6, MH); g.restore();
+      const pg = g.createLinearGradient(0, y-MH/2+6, 0, y+MH/2-6); pg.addColorStop(0,'#dde2e8'); pg.addColorStop(1,'#b8c0ca');
+      g.fillStyle = pg; rr(g, x-MW/2+11, y-MH/2+6, MW-36, MH-12, 3); g.fill();
+      g.fillStyle = 'rgba(29,35,44,.75)'; g.font = '700 10px -apple-system,sans-serif'; g.fillText(String(m.n), x-MW/2+11+(MW-36)/2, y+3.5);
+      // Spindel
+      const sx = x + MW/2 - 13, rpm = (ph === 4 ? 1 : 0.45) * (running ? 1 : 0);
+      m.rot += rpm * 0.12;
+      g.fillStyle = '#3a4350'; g.beginPath(); g.arc(sx, y, 10, 0, 7); g.fill();
+      g.strokeStyle = '#9aa6b5'; g.lineWidth = 2;
+      for (let b=0;b<3;b++){ const a = m.rot + b*2.094; g.beginPath(); g.moveTo(sx, y); g.lineTo(sx + Math.cos(a)*8, y + Math.sin(a)*8); g.stroke(); }
+      g.fillStyle = '#c5ced8'; g.beginPath(); g.arc(sx, y, 2.5, 0, 7); g.fill();
+      // Statusleuchte mit Glühen
+      if (ph >= 3){
+        const lc = ph === 3 ? '255,159,10' : '48,209,88', pulse = ph === 3 ? 0.55 + 0.45*Math.sin(now/260) : 0.85;
+        const lx = x + MW/2 - 6, ly = y - MH/2 + 6, gl = g.createRadialGradient(lx, ly, 0, lx, ly, 16);
+        gl.addColorStop(0, `rgba(${lc},${0.55*pulse})`); gl.addColorStop(1, `rgba(${lc},0)`); g.fillStyle = gl; g.beginPath(); g.arc(lx, ly, 16, 0, 7); g.fill();
+        g.fillStyle = `rgb(${lc})`; g.beginPath(); g.arc(lx, ly, 3.2, 0, 7); g.fill();
+      }
+      if (ph === 3){ g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x-MW/2, y+MH/2+5, MW, 4); g.fillStyle = '#ff9f0a'; g.fillRect(x-MW/2, y+MH/2+5, MW*fac, 4);
+        g.fillStyle = '#b86a00'; g.font = '600 8.5px -apple-system,sans-serif'; g.fillText(`Ramp-up ${Math.round(fac*100)} %`, x, y+MH/2+20); }
+    }
+
+    // Teile bewegen und zeichnen
+    const v = 120 * (0.6 + ui.siteSpeed);
+    g.fillStyle = '#ffd60a';
+    for (let q = st.parts.length-1; q >= 0; q--){
+      const pt = st.parts[q], seg = pt.segs[pt.si];
+      if (pt.w > 0){ pt.w -= dt*running; }
+      else if (running) pt.d += v*dt;
+      const pos = pathPos(seg.pts, pt.d);
+      if (pos.done && pt.w <= 0){
+        if (seg.dwell && pt.w === 0){ pt.w = 0.35 + Math.random()*0.4; }
+        else if (pt.si < pt.segs.length-1){ pt.si++; pt.d = 0; pt.w = 0; }
+        else { st.parts.splice(q,1); continue; }
+      }
+      g.beginPath(); g.arc(pos.x, pos.y, 2.6, 0, 7); g.fill();
+    }
+    // Weg-Läufer (Logistikpersonal)
+    const fteNow = i >= 0 ? p.fte[Math.min(H-1,i)] : 0, walkers = Math.min(14, Math.round(fteNow/8));
+    for (let w=0; w<walkers; w++){ const span = hallW - 60, ph = ((now/1000)*28*(w%2?1:-1)/span + w*0.37) % 1, f = ph < 0 ? ph+1 : ph;
+      worker(g, hallX + 30 + f*span, aisleY + (w%2 ? 9 : -9), w%2 ? 0 : Math.PI, false); }
+
+    // Lager: Paletten proportional zum Bestand
+    const pal = Math.round((Math.max(0, stock) + 0.2*prod)/(maxStock + 0.2*maxProd) * 54);
+    let c = 0;
+    for (let r=0; r<3 && c<pal; r++){ const ry = hallY + 58 + r*((aisleY-hallY-90)/3);
+      for (let side=0; side<2 && c<pal; side++) for (let x=whX+20; x<whX+whW-20 && c<pal; x+=20, c++){
+        g.fillStyle = '#b98a52'; g.fillRect(x+2, ry + 5 + side*13, 16, 11); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x+2, ry + 5 + side*13, 16, 3); } }
+    if (stock < -0.5){ g.fillStyle = 'rgba(255,69,58,.92)'; g.font = '700 11px -apple-system,sans-serif'; g.fillText(`Rückstand ${fmtShort(-stock)} Stk`, whX+whW/2, aisleY-30); }
+    // Stapler Lager → Rampe
+    const nf = Math.min(3, 1 + Math.round(2*dem/maxDem));
+    for (let f=0; f<nf && dem>0; f++){
+      const d = docks[f % docks.length], ph = ((now/1000)*0.22*(0.6+ui.siteSpeed) + f*0.33) % 1, out = ph < 0.5, q = out ? ph*2 : (1-ph)*2;
+      const ax = whX + 40 + f*30, ay = aisleY, bx = hallX + hallW - 22;
+      const pts = [[ax, ay],[bx-30, ay],[bx-30, d.y],[bx, d.y]], L = (bx-30-ax) + Math.abs(d.y-ay) + 30, pp = pathPos(pts, L*ease(q));
+      forklift(g, pp.x, pp.y, out ? pp.ang : pp.ang + Math.PI, out && stock > -0.5);
+    }
+    // Versand-LKW
+    const tv = 140;
+    for (let q = st.trucksOut.length-1; q >= 0; q--){
+      const tr = st.trucksOut[q];
+      if (tr.state === 'in'){ tr.d += tv*dt*running; const pp = pathPos(tr.pts, tr.d); truck(g, pp.x, pp.y, pp.ang + Math.PI, tr.col, 0, false); if (pp.done){ tr.state = 'load'; tr.wait = 0; } }
+      else if (tr.state === 'load'){ tr.wait += dt*running*(stock < -0.5 ? 0.25 : 1); tr.load = Math.min(1, tr.wait/2.2); const l = tr.pts[tr.pts.length-1]; truck(g, l[0], l[1], Math.PI, tr.col, tr.load, stock < -0.5); if (tr.load >= 1){ tr.state = 'out'; tr.d = 0; tr.rp = tr.pts.slice().reverse(); } }
+      else { tr.d += tv*dt*running; const pp = pathPos(tr.rp, tr.d); truck(g, pp.x, pp.y, pp.ang, tr.col, 1, false); if (pp.k >= 2 && tr.dock.busy === tr) tr.dock.busy = null; if (pp.done){ st.trucksOut.splice(q,1); } }
+    }
+    // Rückstand: wartende LKW in der Schlange
+    if (stock < -0.5){ const nq = Math.min(5, Math.ceil(-stock/maxBack*5)); for (let w=0; w<nq; w++) truck(g, yardX + 210 - w*0, hallY + 30 + w*28 + (docks.length*62 > 300 ? 0 : 0), Math.PI/2, '#ff453a', 0, true); }
+    // Zuliefer-LKW
+    for (let q = st.trucksIn.length-1; q >= 0; q--){
+      const tr = st.trucksIn[q];
+      if (tr.state === 'in'){ tr.d += tv*dt*running; const pp = pathPos(tr.pts, tr.d); truck(g, pp.x, pp.y, pp.ang, '#636366', 1, false); if (pp.done){ tr.state = 'unload'; tr.wait = 0; } }
+      else if (tr.state === 'unload'){ tr.wait += dt*running; const l = tr.pts[tr.pts.length-1]; truck(g, l[0], l[1], 0, '#636366', Math.max(0, 1-tr.wait/2), false); if (tr.wait > 2){ tr.state = 'out'; tr.d = 0; tr.rp = tr.pts.slice().reverse(); } }
+      else { tr.d += tv*dt*running; const pp = pathPos(tr.rp, tr.d); truck(g, pp.x, pp.y, pp.ang + Math.PI, '#636366', 0, false); if (pp.done) st.trucksIn.splice(q,1); }
+    }
+
+    // Licht: Vignette + warmes Sonnenlicht (CGI-Look)
+    g.setTransform(1,0,0,1,0,0);
+    const vg = g.createRadialGradient(cv.width*0.45, cv.height*0.4, Math.min(cv.width,cv.height)*0.25, cv.width/2, cv.height/2, Math.max(cv.width,cv.height)*0.75);
+    vg.addColorStop(0,'rgba(255,244,220,0.06)'); vg.addColorStop(1,'rgba(0,0,0,0.42)'); g.fillStyle = vg; g.fillRect(0,0,cv.width,cv.height);
+    // Vor Absatzstart dunkler, je Schichtmodell leicht wechselnd
+    if (t < 0){ g.fillStyle = 'rgba(10,20,40,.12)'; g.fillRect(0,0,cv.width,cv.height); }
+
+    // Ereignisse & HUD
+    const passed = events.filter(e => e.t <= t);
+    if (passed.length !== st.logN){
+      if (st.logN >= 0 && passed.length > st.logN){ const e = passed[passed.length-1]; showToast(e); }
+      st.logN = passed.length;
+      const log = document.getElementById('siteLog');
+      if (log) log.innerHTML = passed.slice(-40).reverse().map(e => `<div class="lg ${e.k}"><span class="lg-t">${esc(monthLabel(s, Math.floor(e.t+1e-6)))}</span><span class="dot" style="background:${e.slot?colors[e.slot]:'var(--text-2)'}"></span><span>${e.k==='warn'?'⚠ ':''}${esc(e.txt)}</span></div>`).join('') || '<p class="muted small">Noch keine Ereignisse – Wiedergabe starten.</p>';
+    }
+    if (now - st.hud > 120){ st.hud = now; updateHud(t, i, prod, dem, stock, capB); }
+    st.raf = requestAnimationFrame(frame);
+  }
+  function showToast(e){
+    const el = document.getElementById('siteToast'); if (!el) return;
+    el.innerHTML = `<span class="dot" style="background:${e.slot?colors[e.slot]:'#fff'}"></span>${e.k==='warn'?'⚠ ':''}${esc(e.txt)}`;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  }
+  function updateHud(t, i, prod, dem, stock, capB){
+    const mi = Math.floor(t);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('hudScen', ui.siteScen === 'sim' ? `Simulationslauf #${ui.siteRun} · ${METHODS[s.method].short}` : `Plan · ${METHODS[s.method].short}`);
+    set('hudMonth', monthLabel(s, mi, true));
+    set('hudYear', mi < 0 ? `Vorlauf · ${-mi} Monat(e) vor Absatzstart` : `${yearLabel(s, Math.min(s.years-1, Math.floor(mi/12)))} · Monat ${mi%12+1} von 12`);
+    const pr = document.getElementById('hudProg'); if (pr) pr.style.width = (mi < 0 ? 0 : ((t - Math.floor(t/12)*12)/12*100)) + '%';
+    const cnt = [0,0,0,0,0]; machines.forEach(m => cnt[phaseOf(m,t)]++);
+    const fte = i >= 0 ? p.fte[Math.min(H-1,i)] : machines.reduce((a,m)=>a+machineFte(s, m.T, m.sop, i),0);
+    const k = document.getElementById('siteKpis'); if (!k) return;
+    k.innerHTML = `
+      <div class="kpi"><div class="l">Absatz im Monat</div><div class="v">${fmtShort(dem)}</div><div class="s">Stück${ui.siteScen==='sim' && i>=0 ? ' · Plan '+fmtShort(M.demand[Math.min(H-1,i)]) : ''}</div></div>
+      <div class="kpi"><div class="l">Produktion</div><div class="v">${fmtShort(prod)}</div><div class="s">Kapazität ${fmtShort(capB)} · ${capB>0?fmtPct(prod/capB):'–'}</div></div>
+      <div class="kpi"><div class="l">${stock < -0.5 ? 'Rückstand' : 'Lagerbestand'}</div><div class="v" style="${stock < -0.5 ? 'color:var(--crit)' : ''}">${fmtShort(Math.abs(stock))}</div><div class="s">Stück Fertigware</div></div>
+      <div class="kpi"><div class="l">Anlagen</div><div class="v">${cnt[3]+cnt[4]}<span style="font-size:15px;color:var(--text-2);font-weight:500"> / ${machines.length}</span></div><div class="s">${cnt[4]} Serie · ${cnt[3]} Ramp-up · ${cnt[2]} Montage · ${cnt[1]} bestellt</div></div>
+      <div class="kpi"><div class="l">Personal</div><div class="v">${fmt1(fte)}</div><div class="s">FTE in der Fertigung</div></div>`;
+  }
+  st.raf = requestAnimationFrame(frame);
 }
 init();
 </script>
